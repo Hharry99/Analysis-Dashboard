@@ -1,6 +1,6 @@
 # ==========================================================
 # PAVEMENT PERFORMANCE MANAGEMENT DASHBOARD
-# Sprint 1 - Core Engine & Data Architecture
+# SPRINT 1 - FINAL STABLE VERSION
 # ==========================================================
 
 import streamlit as st
@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 
 # ==========================================================
-# PAGE CONFIGURATION
+# PAGE CONFIG
 # ==========================================================
 
 st.set_page_config(
@@ -18,25 +18,29 @@ st.set_page_config(
 )
 
 # ==========================================================
-# CUSTOM CSS
-# Works well in both Light and Dark Mode
+# CSS
 # ==========================================================
 
 st.markdown("""
 <style>
 
-.main-title {
-    font-size: 32px;
-    font-weight: 700;
-    text-align: center;
-    padding: 10px;
+.main-title{
+    text-align:center;
+    font-size:38px;
+    font-weight:700;
+    margin-bottom:5px;
 }
 
-.section-box {
-    border-radius: 12px;
-    padding: 15px;
-    margin-bottom: 15px;
-    border: 1px solid rgba(128,128,128,0.3);
+.sub-title{
+    text-align:center;
+    color:#7A7A7A;
+    margin-bottom:30px;
+}
+
+div[data-testid="metric-container"]{
+    border:1px solid rgba(128,128,128,0.25);
+    padding:15px;
+    border-radius:12px;
 }
 
 </style>
@@ -76,20 +80,46 @@ def load_data():
     )
 
 # ==========================================================
-# LOAD DATASETS
+# LOAD DATA
 # ==========================================================
 
 try:
 
-    master_df, multi_df, indices_df, theme_df, benchmark_df = load_data()
+    (
+        master_df,
+        multi_df,
+        indices_df,
+        theme_df,
+        benchmark_df
+    ) = load_data()
 
 except Exception as e:
 
-    st.error(f"Error loading datasets: {e}")
+    st.error(f"Dataset loading error: {e}")
     st.stop()
 
 # ==========================================================
-# TITLE
+# FIND IMPORTANT COLUMNS
+# ==========================================================
+
+agency_col = next(
+    (
+        c for c in master_df.columns
+        if "agency" in c.lower()
+    ),
+    None
+)
+
+position_col = next(
+    (
+        c for c in master_df.columns
+        if "position" in c.lower()
+    ),
+    None
+)
+
+# ==========================================================
+# HEADER
 # ==========================================================
 
 st.markdown(
@@ -101,8 +131,14 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.caption(
-    "Pavement Performance Management Under Data Constraints: Perspectives of Practitioners in Kenya"
+st.markdown(
+    """
+    <div class='sub-title'>
+    Pavement Performance Management Under Data Constraints:
+    Perspectives of Practitioners in Kenya
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
 # ==========================================================
@@ -111,57 +147,42 @@ st.caption(
 
 st.sidebar.header("Dashboard Filters")
 
-# Organization Filter
+selected_orgs = []
 
-if "Agency" in master_df.columns:
+if agency_col:
 
     selected_orgs = st.sidebar.multiselect(
         "Organization",
-        options=sorted(
-            master_df["Agency"]
+        sorted(
+            master_df[agency_col]
             .dropna()
             .unique()
         )
     )
 
-else:
-    selected_orgs = []
-
-# Position Filter
-
-position_col = None
-
-for col in master_df.columns:
-
-    if "position" in col.lower():
-
-        position_col = col
-        break
+selected_positions = []
 
 if position_col:
 
     selected_positions = st.sidebar.multiselect(
         "Position",
-        options=sorted(
+        sorted(
             master_df[position_col]
             .dropna()
             .unique()
         )
     )
 
-else:
-    selected_positions = []
-
 # ==========================================================
-# APPLY FILTERS
+# FILTER DATA
 # ==========================================================
 
 filtered_df = master_df.copy()
 
-if selected_orgs:
+if agency_col and selected_orgs:
 
     filtered_df = filtered_df[
-        filtered_df["Agency"]
+        filtered_df[agency_col]
         .isin(selected_orgs)
     ]
 
@@ -176,59 +197,41 @@ if position_col and selected_positions:
 # KPI ENGINE
 # ==========================================================
 
-def calculate_kpis():
+def safe_mean(df, col):
 
-    kpis = {}
+    if col not in df.columns:
+        return 0
 
-    kpis["Respondents"] = len(master_df)
-
-    if "Agency" in master_df.columns:
-        kpis["Organizations"] = (
-            master_df["Agency"]
-            .nunique()
+    return round(
+        pd.to_numeric(
+            df[col],
+            errors="coerce"
         )
-    else:
-        kpis["Organizations"] = 0
+        .fillna(0)
+        .mean(),
+        1
+    )
 
-    if "DMI" in indices_df.columns:
-        kpis["DMI"] = round(
-            indices_df["DMI"].mean(),
-            1
-        )
-    else:
-        kpis["DMI"] = 0
+kpi_responses = len(filtered_df)
 
-    if "FMI" in indices_df.columns:
-        kpis["FMI"] = round(
-            indices_df["FMI"].mean(),
-            1
-        )
-    else:
-        kpis["FMI"] = 0
+if agency_col:
 
-    if "RRI" in indices_df.columns:
-        kpis["RRI"] = round(
-            indices_df["RRI"].mean(),
-            1
-        )
-    else:
-        kpis["RRI"] = 0
+    kpi_orgs = filtered_df[
+        agency_col
+    ].nunique()
 
-    if "DRI" in indices_df.columns:
-        kpis["DRI"] = round(
-            indices_df["DRI"].mean(),
-            1
-        )
-    else:
-        kpis["DRI"] = 0
+else:
 
-    return kpis
+    kpi_orgs = 0
+
+dmi = safe_mean(indices_df, "DMI")
+fmi = safe_mean(indices_df, "FMI")
+rri = safe_mean(indices_df, "RRI")
+dri = safe_mean(indices_df, "DRI")
 
 # ==========================================================
-# DISPLAY KPI CARDS
+# KPI DISPLAY
 # ==========================================================
-
-kpis = calculate_kpis()
 
 st.subheader("Executive KPI Summary")
 
@@ -237,19 +240,19 @@ c1, c2, c3 = st.columns(3)
 with c1:
     st.metric(
         "Respondents",
-        kpis["Respondents"]
+        kpi_responses
     )
 
 with c2:
     st.metric(
         "Organizations",
-        kpis["Organizations"]
+        kpi_orgs
     )
 
 with c3:
     st.metric(
         "Data Maturity Index",
-        kpis["DMI"]
+        dmi
     )
 
 c4, c5, c6 = st.columns(3)
@@ -257,131 +260,129 @@ c4, c5, c6 = st.columns(3)
 with c4:
     st.metric(
         "Forecasting Maturity",
-        kpis["FMI"]
+        fmi
     )
 
 with c5:
     st.metric(
         "Reconstruction Readiness",
-        kpis["RRI"]
+        rri
     )
 
 with c6:
     st.metric(
         "Digital Readiness",
-        kpis["DRI"]
+        dri
     )
 
 # ==========================================================
-# THEME ENGINE
-# ==========================================================
-
-THEMES = [
-    "Data Systems & Databases",
-    "Routine Data Collection & Monitoring",
-    "Forecasting, AI & Analytics",
-    "Capacity Building & Training",
-    "Institutional Coordination & Policy",
-    "Funding & Resource Allocation"
-]
-
-def calculate_theme_frequency():
-
-    results = []
-
-    for theme in THEMES:
-
-        if theme in theme_df.columns:
-
-            count = theme_df[theme].sum()
-
-            results.append({
-                "Theme": theme,
-                "Mentions": count
-            })
-
-    return pd.DataFrame(results)
-
-# ==========================================================
-# THEME TABLE
+# THEME SUMMARY
 # ==========================================================
 
 st.subheader("Theme Frequency Summary")
 
-theme_summary = calculate_theme_frequency()
+theme_cols = []
 
-if not theme_summary.empty:
+for col in theme_df.columns:
+
+    if col not in [
+        "Response_ID",
+        "Agency"
+    ]:
+
+        theme_cols.append(col)
+
+if len(theme_cols) > 0:
+
+    theme_summary = pd.DataFrame({
+
+        "Theme": theme_cols,
+
+        "Mentions": [
+            theme_df[col].sum()
+            for col in theme_cols
+        ]
+
+    })
 
     st.dataframe(
-        theme_summary,
+        theme_summary.sort_values(
+            "Mentions",
+            ascending=False
+        ),
         use_container_width=True
     )
 
-# ==========================================================
-# BENCHMARK ENGINE
-# ==========================================================
+else:
 
-def organization_rankings():
-
-    if benchmark_df.empty:
-        return pd.DataFrame()
-
-    benchmark = benchmark_df.copy()
-
-    required_cols = [
-        "DMI",
-        "FMI",
-        "RRI",
-        "DRI"
-    ]
-
-    missing = [
-        c for c in required_cols
-        if c not in benchmark.columns
-    ]
-
-    if missing:
-        return pd.DataFrame()
-
-    benchmark["Overall Score"] = (
-
-        benchmark["DMI"]
-        + benchmark["FMI"]
-        + benchmark["RRI"]
-        + benchmark["DRI"]
-
-    ) / 4
-
-    benchmark = benchmark.sort_values(
-        "Overall Score",
-        ascending=False
+    st.warning(
+        "No theme columns found."
     )
-
-    return benchmark
 
 # ==========================================================
 # BENCHMARK TABLE
 # ==========================================================
 
-st.subheader("Organization Benchmark Ranking")
+st.subheader(
+    "Organization Benchmark Ranking"
+)
 
-ranking_df = organization_rankings()
-
-if not ranking_df.empty:
+if not benchmark_df.empty:
 
     st.dataframe(
-        ranking_df,
+        benchmark_df,
         use_container_width=True
     )
 
 else:
 
     st.info(
-        "Benchmark dataset not yet populated."
+        "Benchmark dataset is empty."
     )
 
 # ==========================================================
-# SYSTEM STATUS
+# DATASET DIAGNOSTICS
+# REMOVE AFTER TESTING
+# ==========================================================
+
+with st.expander(
+    "Dataset Diagnostics"
+):
+
+    st.write(
+        "MASTER DATASET COLUMNS"
+    )
+
+    st.write(
+        list(master_df.columns)
+    )
+
+    st.write(
+        "INDICES DATASET COLUMNS"
+    )
+
+    st.write(
+        list(indices_df.columns)
+    )
+
+    st.write(
+        "THEME DATASET COLUMNS"
+    )
+
+    st.write(
+        list(theme_df.columns)
+    )
+
+    st.write(
+        "BENCHMARK DATASET COLUMNS"
+    )
+
+    st.write(
+        list(benchmark_df.columns)
+    )
+
+# ==========================================================
+# FOOTER
 # ==========================================================
 
 st.success(
@@ -389,5 +390,5 @@ st.success(
 )
 
 st.info(
-    "Next Step: Build Executive Dashboard Visualizations (Sprint 2)"
+    "Ready for Sprint 2: Executive Dashboard Visualizations"
 )
