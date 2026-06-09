@@ -480,6 +480,373 @@ with c6:
     st.metric("Digital Readiness Index (DRI)", dri)
 
 # ==========================================================
+# SPRINT 2
+# EXECUTIVE VISUALIZATIONS & ANALYTICS
+# ==========================================================
+
+st.markdown("""
+<div class='section-title'>
+Executive Analytics Dashboard
+</div>
+""", unsafe_allow_html=True)
+
+# ==========================================================
+# PREPARE THEME DATA
+# ==========================================================
+
+theme_results = []
+
+for col in theme_df.columns:
+
+    if col in THEME_DISPLAY_NAMES:
+
+        mentions = pd.to_numeric(
+            theme_df[col],
+            errors="coerce"
+        ).fillna(0).sum()
+
+        theme_results.append({
+
+            "Theme":
+                THEME_DISPLAY_NAMES[col],
+
+            "Mentions":
+                int(mentions)
+
+        })
+
+theme_summary = pd.DataFrame(
+    theme_results
+)
+
+# ==========================================================
+# ROW 1
+# AGENCY DISTRIBUTION + THEME FREQUENCY
+# ==========================================================
+
+col1, col2 = st.columns(2)
+
+with col1:
+
+    st.markdown("### Agency Distribution")
+
+    if agency_col:
+
+        agency_counts = (
+
+            master_df[agency_col]
+            .value_counts()
+            .reset_index()
+
+        )
+
+        agency_counts.columns = [
+            "Agency",
+            "Responses"
+        ]
+
+        fig_agency = px.pie(
+
+            agency_counts,
+
+            names="Agency",
+
+            values="Responses",
+
+            hole=0.55
+
+        )
+
+        fig_agency.update_layout(
+            height=450
+        )
+
+        st.plotly_chart(
+            fig_agency,
+            use_container_width=True
+        )
+
+with col2:
+
+    st.markdown("### Theme Frequency Analysis")
+
+    if not theme_summary.empty:
+
+        fig_theme = px.bar(
+
+            theme_summary.sort_values(
+                "Mentions",
+                ascending=True
+            ),
+
+            x="Mentions",
+
+            y="Theme",
+
+            orientation="h"
+
+        )
+
+        fig_theme.update_layout(
+            height=450
+        )
+
+        st.plotly_chart(
+            fig_theme,
+            use_container_width=True
+        )
+
+# ==========================================================
+# ROW 2
+# THEME PERCENTAGE DONUT
+# ==========================================================
+
+st.markdown("### Theme Distribution")
+
+if not theme_summary.empty:
+
+    total_mentions = theme_summary[
+        "Mentions"
+    ].sum()
+
+    if total_mentions > 0:
+
+        theme_summary["Percentage"] = (
+
+            theme_summary["Mentions"]
+
+            / total_mentions
+
+        ) * 100
+
+        fig_theme_pct = px.pie(
+
+            theme_summary,
+
+            names="Theme",
+
+            values="Percentage",
+
+            hole=0.60
+
+        )
+
+        fig_theme_pct.update_layout(
+            height=500
+        )
+
+        st.plotly_chart(
+            fig_theme_pct,
+            use_container_width=True
+        )
+
+# ==========================================================
+# GAUGE FUNCTION
+# ==========================================================
+
+def gauge_chart(title, value):
+
+    fig = go.Figure(
+
+        go.Indicator(
+
+            mode="gauge+number",
+
+            value=value,
+
+            title={"text": title},
+
+            gauge={
+
+                "axis": {
+
+                    "range": [0, 100]
+
+                }
+
+            }
+
+        )
+
+    )
+
+    fig.update_layout(
+        height=300
+    )
+
+    return fig
+
+# ==========================================================
+# ROW 3
+# DMI / FMI
+# ==========================================================
+
+g1, g2 = st.columns(2)
+
+with g1:
+
+    st.plotly_chart(
+
+        gauge_chart(
+            "Data Maturity Index (DMI)",
+            dmi
+        ),
+
+        use_container_width=True
+
+    )
+
+with g2:
+
+    st.plotly_chart(
+
+        gauge_chart(
+            "Forecasting Maturity Index (FMI)",
+            fmi
+        ),
+
+        use_container_width=True
+
+    )
+
+# ==========================================================
+# ROW 4
+# RRI / DRI
+# ==========================================================
+
+g3, g4 = st.columns(2)
+
+with g3:
+
+    st.plotly_chart(
+
+        gauge_chart(
+            "Reconstruction Readiness Index (RRI)",
+            rri
+        ),
+
+        use_container_width=True
+
+    )
+
+with g4:
+
+    st.plotly_chart(
+
+        gauge_chart(
+            "Digital Readiness Index (DRI)",
+            dri
+        ),
+
+        use_container_width=True
+
+    )
+
+# ==========================================================
+# NATIONAL READINESS SUMMARY
+# ==========================================================
+
+st.markdown("""
+<div class='section-title'>
+National Readiness Summary
+</div>
+""", unsafe_allow_html=True)
+
+summary_df = pd.DataFrame({
+
+    "Index": [
+
+        "Data Maturity Index",
+
+        "Forecasting Maturity Index",
+
+        "Reconstruction Readiness Index",
+
+        "Digital Readiness Index"
+
+    ],
+
+    "Score": [
+
+        dmi,
+
+        fmi,
+
+        rri,
+
+        dri
+
+    ]
+
+})
+
+st.dataframe(
+    summary_df,
+    use_container_width=True
+)
+
+# ==========================================================
+# EXECUTIVE INSIGHTS
+# ==========================================================
+
+st.markdown("""
+<div class='section-title'>
+Executive Insights
+</div>
+""", unsafe_allow_html=True)
+
+top_theme = "Not Available"
+
+if not theme_summary.empty:
+
+    top_theme = (
+
+        theme_summary
+
+        .sort_values(
+            "Mentions",
+            ascending=False
+        )
+
+        .iloc[0]["Theme"]
+
+    )
+
+st.info(f"""
+
+### Key Findings
+
+• Total Respondents: **{responses}**
+
+• Organizations Represented: **{organizations}**
+
+• Dominant Theme: **{top_theme}**
+
+• Data Maturity Index: **{dmi}**
+
+• Forecasting Maturity Index: **{fmi}**
+
+• Reconstruction Readiness Index: **{rri}**
+
+• Digital Readiness Index: **{dri}**
+
+### Interpretation
+
+The survey findings suggest that practitioners
+recognize the importance of forecasting,
+data-driven pavement management,
+institutional strengthening,
+capacity development,
+and improved use of pavement condition data.
+
+The relatively moderate DMI and FMI scores
+suggest opportunities for strengthening
+data collection systems and forecasting
+capabilities across road agencies.
+
+""")
+
+# ==========================================================
 # THEME FREQUENCY SUMMARY
 # ==========================================================
 
