@@ -6,19 +6,12 @@
 # Pavement Performance Management Under Data Constraints
 # Perspectives of Practitioners in Kenya
 #
-# Author: Harrison
-# Phase: Pre-Visualization Foundation
-#
-# Next Sprint:
-# - Plotly Charts
-# - Donut Charts
-# - Gauges
-# - Heatmaps
-# - Radar Charts
+# Status:
+# READY FOR SPRINT 2 VISUALIZATIONS
 # ==========================================================
 
 # ==========================================================
-# IMPORT LIBRARIES
+# IMPORTS
 # ==========================================================
 
 import streamlit as st
@@ -26,7 +19,7 @@ import pandas as pd
 import numpy as np
 
 # ==========================================================
-# PAGE CONFIGURATION
+# PAGE CONFIG
 # ==========================================================
 
 st.set_page_config(
@@ -68,9 +61,7 @@ THEME_DISPLAY_NAMES = {
 st.markdown("""
 <style>
 
-/* ======================================================
-   HERO SECTION
-====================================================== */
+/* HERO */
 
 .hero-badge{
     display:inline-block;
@@ -105,9 +96,7 @@ st.markdown("""
     margin-top:10px;
 }
 
-/* ======================================================
-   KPI CARDS
-====================================================== */
+/* KPI CARDS */
 
 div[data-testid="metric-container"]{
     border-radius:16px;
@@ -116,9 +105,7 @@ div[data-testid="metric-container"]{
     background:rgba(15,23,42,0.05);
 }
 
-/* ======================================================
-   FINDINGS BOX
-====================================================== */
+/* FINDINGS */
 
 .findings-box{
     border-left:6px solid #D97706;
@@ -129,20 +116,7 @@ div[data-testid="metric-container"]{
     margin-bottom:20px;
 }
 
-/* ======================================================
-   SECTION TITLES
-====================================================== */
-
-.section-title{
-    font-size:30px;
-    font-weight:700;
-    margin-top:25px;
-    margin-bottom:15px;
-}
-
-/* ======================================================
-   RESEARCH SCOPE CARD
-====================================================== */
+/* SCOPE */
 
 .scope-box{
     border-radius:15px;
@@ -150,6 +124,15 @@ div[data-testid="metric-container"]{
     border:1px solid rgba(128,128,128,0.25);
     margin-top:20px;
     margin-bottom:20px;
+}
+
+/* SECTION TITLE */
+
+.section-title{
+    font-size:30px;
+    font-weight:700;
+    margin-top:25px;
+    margin-bottom:15px;
 }
 
 </style>
@@ -189,7 +172,7 @@ def load_data():
     )
 
 # ==========================================================
-# LOAD DATASETS
+# LOAD DATA
 # ==========================================================
 
 try:
@@ -208,7 +191,7 @@ except Exception as e:
     st.stop()
 
 # ==========================================================
-# AUTO-DETECT IMPORTANT COLUMNS
+# AUTO DETECT COLUMNS
 # ==========================================================
 
 agency_col = next(
@@ -280,7 +263,7 @@ if position_col and selected_positions:
     ]
 
 # ==========================================================
-# HELPER FUNCTIONS
+# HELPERS
 # ==========================================================
 
 def safe_mean(df, column):
@@ -295,24 +278,16 @@ def safe_mean(df, column):
         if len(values) == 0:
             return 0
 
-        return round(
-            values.mean(),
-            1
-        )
+        return round(values.mean(), 1)
 
     except:
         return 0
 
-
-def safe_count(df):
-
-    return len(df)
-
 # ==========================================================
-# KPI CALCULATIONS
+# KPIs
 # ==========================================================
 
-responses = safe_count(filtered_df)
+responses = len(filtered_df)
 
 organizations = (
     filtered_df[agency_col].nunique()
@@ -325,7 +300,7 @@ rri = safe_mean(indices_df, "RRI")
 dri = safe_mean(indices_df, "DRI")
 
 # ==========================================================
-# HERO SECTION
+# HERO
 # ==========================================================
 
 st.markdown(
@@ -381,8 +356,8 @@ st.markdown(f"""
 
 <ul>
 <li><b>Survey Responses:</b> {responses}</li>
-<li><b>Organizations Represented:</b> {organizations}</li>
-<li><b>Open-ended Questions Analysed:</b> Q27 & Q28</li>
+<li><b>Organizations Represented:</b> KeRRA, KURA, KeNHA, KRB and MTRD</li>
+<li><b>Open-ended Questions Analysed:</b> Q27 and Q28</li>
 <li><b>Themes Identified:</b> 6</li>
 <li><b>Study Focus:</b> Pavement Performance Management Under Data Constraints</li>
 </ul>
@@ -391,32 +366,46 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ==========================================================
-# EXECUTIVE FINDINGS
+# THEME ANALYSIS
 # ==========================================================
 
-theme_totals = {}
+theme_results = []
 
 for col in theme_df.columns:
 
     if col in THEME_DISPLAY_NAMES:
 
-        theme_totals[col] = pd.to_numeric(
+        mentions = pd.to_numeric(
             theme_df[col],
             errors="coerce"
         ).fillna(0).sum()
 
+        theme_results.append({
+            "Theme":
+                THEME_DISPLAY_NAMES[col],
+
+            "Mentions":
+                int(mentions)
+        })
+
+theme_summary = pd.DataFrame(theme_results)
+
 top_theme = "Not Available"
 
-if len(theme_totals) > 0:
+if not theme_summary.empty:
 
-    top_theme_key = max(
-        theme_totals,
-        key=theme_totals.get
+    top_theme = (
+        theme_summary
+        .sort_values(
+            "Mentions",
+            ascending=False
+        )
+        .iloc[0]["Theme"]
     )
 
-    top_theme = THEME_DISPLAY_NAMES[
-        top_theme_key
-    ]
+# ==========================================================
+# EXECUTIVE FINDINGS
+# ==========================================================
 
 st.markdown(
 f"""
@@ -445,8 +434,11 @@ Average Digital Readiness Index:
 </li>
 
 <li>
-Respondents emphasized stronger data systems,
-forecasting capability and institutional capacity.
+Respondents highlighted the need for
+improved forecasting capability,
+stronger data systems,
+capacity building,
+and evidence-based pavement management.
 </li>
 
 </ul>
@@ -457,7 +449,7 @@ unsafe_allow_html=True
 )
 
 # ==========================================================
-# KPI SECTION
+# KPI SUMMARY
 # ==========================================================
 
 st.markdown(
@@ -465,45 +457,27 @@ st.markdown(
 unsafe_allow_html=True
 )
 
-k1, k2, k3 = st.columns(3)
+c1, c2, c3 = st.columns(3)
 
-with k1:
-    st.metric(
-        "Respondents",
-        responses
-    )
+with c1:
+    st.metric("Respondents", responses)
 
-with k2:
-    st.metric(
-        "Organizations",
-        organizations
-    )
+with c2:
+    st.metric("Organizations", organizations)
 
-with k3:
-    st.metric(
-        "Data Maturity Index (DMI)",
-        dmi
-    )
+with c3:
+    st.metric("Data Maturity Index (DMI)", dmi)
 
-k4, k5, k6 = st.columns(3)
+c4, c5, c6 = st.columns(3)
 
-with k4:
-    st.metric(
-        "Forecasting Maturity Index (FMI)",
-        fmi
-    )
+with c4:
+    st.metric("Forecasting Maturity Index (FMI)", fmi)
 
-with k5:
-    st.metric(
-        "Reconstruction Readiness Index (RRI)",
-        rri
-    )
+with c5:
+    st.metric("Reconstruction Readiness Index (RRI)", rri)
 
-with k6:
-    st.metric(
-        "Digital Readiness Index (DRI)",
-        dri
-    )
+with c6:
+    st.metric("Digital Readiness Index (DRI)", dri)
 
 # ==========================================================
 # THEME FREQUENCY SUMMARY
@@ -514,40 +488,13 @@ st.markdown(
 unsafe_allow_html=True
 )
 
-theme_results = []
-
-for col in theme_df.columns:
-
-    if col in THEME_DISPLAY_NAMES:
-
-        total = pd.to_numeric(
-            theme_df[col],
-            errors="coerce"
-        ).fillna(0).sum()
-
-        theme_results.append({
-
-            "Theme":
-                THEME_DISPLAY_NAMES[col],
-
-            "Mentions":
-                int(total)
-
-        })
-
-theme_summary = pd.DataFrame(
-    theme_results
-)
-
 if not theme_summary.empty:
 
-    theme_summary = theme_summary.sort_values(
-        "Mentions",
-        ascending=False
-    )
-
     st.dataframe(
-        theme_summary,
+        theme_summary.sort_values(
+            "Mentions",
+            ascending=False
+        ),
         use_container_width=True
     )
 
@@ -572,6 +519,7 @@ benchmark_columns = [
     "FMI",
     "RRI",
     "DRI",
+    "Overall_Score",
     "Overall_Rank"
 ]
 
@@ -582,7 +530,7 @@ available_columns = [
     if col in benchmark_df.columns
 ]
 
-if len(available_columns) > 0:
+if available_columns:
 
     st.dataframe(
         benchmark_df[
@@ -594,7 +542,7 @@ if len(available_columns) > 0:
 else:
 
     st.info(
-        "Benchmark scores not yet available."
+        "Benchmark dataset not available."
     )
 
 # ==========================================================
@@ -606,23 +554,20 @@ with st.expander("Dataset Health"):
     health_df = pd.DataFrame({
 
         "Dataset": [
-
-            "Master Dataset",
+            "Clean Master",
+            "Multi-Select",
             "Theme Dataset",
             "Benchmark Dataset",
             "Indices Dataset"
-
         ],
 
         "Records": [
-
             len(master_df),
+            len(multi_df),
             len(theme_df),
             len(benchmark_df),
             len(indices_df)
-
         ]
-
     })
 
     st.dataframe(
@@ -640,34 +585,19 @@ if DEVELOPER_MODE:
         "Developer Diagnostics"
     ):
 
-        st.write("MASTER DATASET")
-        st.write(
-            list(master_df.columns)
-        )
-
-        st.write("THEME DATASET")
-        st.write(
-            list(theme_df.columns)
-        )
-
-        st.write("INDICES DATASET")
-        st.write(
-            list(indices_df.columns)
-        )
-
-        st.write("BENCHMARK DATASET")
-        st.write(
-            list(benchmark_df.columns)
-        )
+        st.write(master_df.columns)
+        st.write(theme_df.columns)
+        st.write(indices_df.columns)
+        st.write(benchmark_df.columns)
 
 # ==========================================================
 # FOOTER
 # ==========================================================
 
 st.success(
-    "Sprint 1.6 Production Foundation Completed Successfully"
+    "Sprint 1.6a Production Foundation Validated Successfully"
 )
 
 st.info(
-    "Ready for Sprint 2: Executive Visualizations and Interactive Analytics"
+    "Ready for Sprint 2: Executive Visualizations & Interactive Analytics"
 )
