@@ -961,14 +961,3 @@ if DEVELOPER_MODE:
         st.write(indices_df.columns)
         st.write(benchmark_df.columns)
 
-# ==========================================================
-# FOOTER
-# ==========================================================
-
-st.success(
-    "Sprint 1.6a Production Foundation Validated Successfully"
-)
-
-st.info(
-    "Ready for Sprint 2: Executive Visualizations & Interactive Analytics"
-)
