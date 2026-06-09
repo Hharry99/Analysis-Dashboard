@@ -18,6 +18,10 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
+# Sprint 2 Visualization Libraries
+import plotly.express as px
+import plotly.graph_objects as go
+
 # ==========================================================
 # PAGE CONFIG
 # ==========================================================
