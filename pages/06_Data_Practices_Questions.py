@@ -1,7 +1,7 @@
 
 # ==========================================================
 # DATA PRACTICES QUESTION ANALYTICS
-# Sprint 3B.5A (Production Version)
+# Sprint 3B.5A - Final Production Version
 # ==========================================================
 
 import streamlit as st
@@ -26,7 +26,9 @@ st.set_page_config(
 
 @st.cache_data
 def load_data():
-    return pd.read_csv("data/clean_master.csv")
+    return pd.read_csv(
+        "data/clean_master.csv"
+    )
 
 master_df = load_data()
 master_df = clean_master_dataset(master_df)
@@ -36,6 +38,10 @@ master_df = clean_master_dataset(master_df)
 # ==========================================================
 
 ORG_COL = "Q1. What agency do you work for?"
+
+# ==========================================================
+# QUESTION MAP
+# ==========================================================
 
 QUESTION_MAP = {
 
@@ -74,51 +80,8 @@ QUESTION_MAP = {
 }
 
 # ==========================================================
-# MULTISELECT QUESTIONS
+# QUESTION DESCRIPTIONS
 # ==========================================================
-
-MULTISELECT_QUESTIONS = [
-    "Q5",
-    "Q6",
-    "Q8",
-    "Q13"
-]
-
-# ==========================================================
-# PAGE HEADER
-# ==========================================================
-
-st.title("📋 Data Practices Question Analytics")
-
-st.markdown("""
-This page explores the underlying survey questions that contribute
-to Data Maturity across participating organizations.
-""")
-
-# ==========================================================
-# FILTERS
-# ==========================================================
-
-agencies = sorted(
-    master_df[ORG_COL]
-    .dropna()
-    .unique()
-)
-
-selected_agencies = st.multiselect(
-    "Filter Organization",
-    agencies,
-    default=agencies
-)
-
-analysis_df = master_df[
-    master_df[ORG_COL].isin(selected_agencies)
-]
-
-selected_question = st.selectbox(
-    "Select Question",
-    list(QUESTION_MAP.keys())
-)
 
 QUESTION_DESCRIPTIONS = {
 
@@ -153,8 +116,56 @@ QUESTION_DESCRIPTIONS = {
         "Governance and stewardship of pavement information.",
 
     "Q15 - Overall Data Maturity":
-        "Overall perception of data maturity."
+        "Overall perception of organizational data maturity."
 }
+
+# ==========================================================
+# MULTI-SELECT QUESTIONS
+# ==========================================================
+
+MULTISELECT_QUESTIONS = [
+    "Q5",
+    "Q6",
+    "Q8",
+    "Q13"
+]
+
+# ==========================================================
+# PAGE HEADER
+# ==========================================================
+
+st.title("📋 Data Practices Question Analytics")
+
+st.markdown("""
+This page explores the survey questions that contribute
+to organizational Data Maturity.
+""")
+
+# ==========================================================
+# FILTERS
+# ==========================================================
+
+agencies = sorted(
+    master_df[ORG_COL]
+    .dropna()
+    .unique()
+)
+
+selected_agencies = st.multiselect(
+    "Filter Organization",
+    agencies,
+    default=agencies
+)
+
+analysis_df = master_df[
+    master_df[ORG_COL]
+    .isin(selected_agencies)
+]
+
+selected_question = st.selectbox(
+    "Select Question",
+    list(QUESTION_MAP.keys())
+)
 
 st.info(
     QUESTION_DESCRIPTIONS.get(
@@ -162,7 +173,10 @@ st.info(
         ""
     )
 )
-question_col = QUESTION_MAP[selected_question]
+
+question_col = QUESTION_MAP[
+    selected_question
+]
 
 question_code = (
     selected_question
@@ -178,6 +192,7 @@ if question_col not in analysis_df.columns:
     st.error(
         f"Column not found: {question_col}"
     )
+
     st.stop()
 
 # ==========================================================
@@ -224,7 +239,9 @@ c3.metric(
 # RESPONSE DISTRIBUTION
 # ==========================================================
 
-st.markdown("## Response Distribution")
+st.markdown(
+    "## Response Distribution"
+)
 
 freq_df = (
     responses
@@ -242,14 +259,16 @@ freq_df["Percentage"] = (
     /
     freq_df["Count"].sum()
     * 100
-)freq_df = (
+).round(1)
+
+freq_df = (
     freq_df
     .sort_values(
         "Count",
         ascending=False
     )
     .reset_index(drop=True)
-).round(1)
+)
 
 fig = px.bar(
     freq_df,
@@ -262,7 +281,12 @@ fig = px.bar(
 
 fig.update_layout(
     yaxis_title="Response",
-    xaxis_title="Count"
+    xaxis_title="Number of Responses"
+)
+
+fig.update_traces(
+    texttemplate="%{text}%",
+    textposition="outside"
 )
 
 st.plotly_chart(
@@ -274,7 +298,9 @@ st.plotly_chart(
 # ORGANIZATION COMPARISON
 # ==========================================================
 
-st.markdown("## Organization Comparison")
+st.markdown(
+    "## Organization Comparison"
+)
 
 try:
 
@@ -302,11 +328,6 @@ try:
         heatmap_df[question_col] = (
             heatmap_df[question_col]
             .str.strip()
-        )
-
-        heatmap_df = (
-            heatmap_df
-            .reset_index(drop=True)
         )
 
     else:
@@ -360,7 +381,9 @@ except Exception as e:
 # RESPONSE SUMMARY
 # ==========================================================
 
-st.markdown("## Response Summary")
+st.markdown(
+    "## Response Summary"
+)
 
 st.dataframe(
     freq_df[
@@ -374,7 +397,7 @@ st.dataframe(
 )
 
 # ==========================================================
-# INTERPRETATION
+# EXECUTIVE INTERPRETATION
 # ==========================================================
 
 top_response = (
@@ -393,6 +416,7 @@ st.info(f"""
 ### Executive Interpretation
 
 Question analyzed:
+
 **{selected_question}**
 
 Most common response:
@@ -404,12 +428,12 @@ Response share:
 **{top_percentage}%**
 
 A total of **{len(responses)} responses**
-were analyzed across **{analysis_df[ORG_COL].nunique()} organizations**.
+were analyzed across
+**{analysis_df[ORG_COL].nunique()} organizations**.
 
-The results provide insight into current
-data collection, management, governance,
-storage and utilization practices across
-Kenya's road agencies.
+The findings provide insight into how
+road agencies collect, manage, store,
+govern and utilize pavement information.
 
 Differences across organizations may
 highlight opportunities for benchmarking,
