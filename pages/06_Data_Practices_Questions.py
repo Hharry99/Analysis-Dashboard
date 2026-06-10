@@ -206,17 +206,17 @@ if question_code in MULTISELECT_QUESTIONS:
 c1, c2, c3 = st.columns(3)
 
 c1.metric(
-    "Responses",
+    "Survey Responses",
     len(responses)
 )
 
 c2.metric(
-    "Organizations",
+    "Participating Agencies",
     analysis_df[ORG_COL].nunique()
 )
 
 c3.metric(
-    "Unique Answers",
+    "Unique Response Categories",
     responses.nunique()
 )
 
