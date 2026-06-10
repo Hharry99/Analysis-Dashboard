@@ -1,6 +1,7 @@
+
 # ==========================================================
 # FORECASTING QUESTION ANALYTICS
-# Sprint 3B.5A
+# Sprint 3B.5A (Production Version)
 # ==========================================================
 
 import streamlit as st
@@ -32,6 +33,10 @@ def load_data():
 master_df = load_data()
 master_df = clean_master_dataset(master_df)
 
+# ==========================================================
+# COLUMN DEFINITIONS
+# ==========================================================
+
 ORG_COL = "Q1. What agency do you work for?"
 
 # ==========================================================
@@ -40,32 +45,35 @@ ORG_COL = "Q1. What agency do you work for?"
 
 QUESTION_MAP = {
 
-    "Forecasting Method (Q16)":
-        [c for c in master_df.columns if c.startswith("Q16")][0],
+    "Q16 - Forecasting Method":
+        [c for c in master_df.columns
+         if c.startswith("Q16")][0],
 
-    "Forecast Confidence (Q17)":
-        [c for c in master_df.columns if c.startswith("Q17")][0],
+    "Q17 - Forecast Confidence":
+        [c for c in master_df.columns
+         if c.startswith("Q17")][0],
 
-    "Forecasting Barriers (Q18)":
-        [c for c in master_df.columns if c.startswith("Q18")][0],
+    "Q18 - Forecasting Barriers":
+        [c for c in master_df.columns
+         if c.startswith("Q18")][0],
 
-    "Budgeting Decisions":
+    "Q19a - Multi-Year Budgeting":
         [c for c in master_df.columns
          if "Multi-year budgeting" in c][0],
 
-    "Treatment Timing":
+    "Q19b - Treatment Timing Decisions":
         [c for c in master_df.columns
          if "Treatment timing decisions" in c][0],
 
-    "Network Optimisation":
+    "Q19c - Network-Level Optimisation":
         [c for c in master_df.columns
          if "Network-level optimisation" in c][0],
 
-    "Risk Prioritisation":
+    "Q19d - Risk-Based Prioritisation":
         [c for c in master_df.columns
          if "Risk-based prioritisation" in c][0],
 
-    "Funding Justification":
+    "Q19e - Funding Justification":
         [c for c in master_df.columns
          if "Justification of funding requests" in c][0]
 }
@@ -78,7 +86,7 @@ st.title("🔮 Forecasting Question Analytics")
 
 st.markdown("""
 This page explores forecasting practices,
-confidence levels and decision-support
+confidence levels, barriers and decision-support
 applications that contribute to Forecasting Maturity.
 """)
 
@@ -87,7 +95,9 @@ applications that contribute to Forecasting Maturity.
 # ==========================================================
 
 agencies = sorted(
-    master_df[ORG_COL].dropna().unique()
+    master_df[ORG_COL]
+    .dropna()
+    .unique()
 )
 
 selected_agencies = st.multiselect(
@@ -97,9 +107,8 @@ selected_agencies = st.multiselect(
 )
 
 analysis_df = master_df[
-    master_df[ORG_COL].isin(
-        selected_agencies
-    )
+    master_df[ORG_COL]
+    .isin(selected_agencies)
 ]
 
 selected_question = st.selectbox(
@@ -112,12 +121,50 @@ question_col = QUESTION_MAP[
 ]
 
 # ==========================================================
-# KPI SECTION
+# VALIDATION
 # ==========================================================
 
-responses = analysis_df[
-    question_col
-].dropna()
+if question_col not in analysis_df.columns:
+
+    st.error(
+        f"Column not found: {question_col}"
+    )
+
+    st.stop()
+
+# ==========================================================
+# RESPONSE PROCESSING
+# ==========================================================
+
+responses = (
+    analysis_df[
+        question_col
+    ]
+    .dropna()
+)
+
+# ==========================================================
+# NORMALIZE Q16 OTHER RESPONSES
+# ==========================================================
+
+if selected_question == \
+    "Q16 - Forecasting Method":
+
+    responses = responses.apply(
+
+        lambda x:
+        "Other Forecasting Method"
+
+        if str(x).startswith(
+            "Other"
+        )
+
+        else x
+    )
+
+# ==========================================================
+# KPI SECTION
+# ==========================================================
 
 c1, c2, c3 = st.columns(3)
 
@@ -128,7 +175,8 @@ c1.metric(
 
 c2.metric(
     "Organizations",
-    analysis_df[ORG_COL].nunique()
+    analysis_df[ORG_COL]
+    .nunique()
 )
 
 c3.metric(
@@ -137,8 +185,12 @@ c3.metric(
 )
 
 # ==========================================================
-# DISTRIBUTION
+# RESPONSE DISTRIBUTION
 # ==========================================================
+
+st.markdown(
+    "## Response Distribution"
+)
 
 freq_df = (
     responses
@@ -151,12 +203,25 @@ freq_df.columns = [
     "Count"
 ]
 
+freq_df["Percentage"] = (
+    freq_df["Count"]
+    /
+    freq_df["Count"].sum()
+    * 100
+).round(1)
+
 fig = px.bar(
     freq_df,
     x="Count",
     y="Response",
     orientation="h",
-    title=f"{selected_question}"
+    text="Percentage",
+    title=f"{selected_question} Response Distribution"
+)
+
+fig.update_layout(
+    yaxis_title="Response",
+    xaxis_title="Count"
 )
 
 st.plotly_chart(
@@ -165,30 +230,96 @@ st.plotly_chart(
 )
 
 # ==========================================================
-# ORGANIZATION HEATMAP
+# ORGANIZATION COMPARISON
 # ==========================================================
 
-cross_df = pd.crosstab(
-    analysis_df[ORG_COL],
-    analysis_df[question_col]
+st.markdown(
+    "## Organization Comparison"
 )
 
-fig2 = px.imshow(
-    cross_df,
-    aspect="auto",
-    title="Agency Comparison Heatmap"
-)
+try:
 
-st.plotly_chart(
-    fig2,
-    use_container_width=True
-)
+    heatmap_df = (
+        analysis_df[
+            [ORG_COL, question_col]
+        ]
+        .dropna()
+        .copy()
+    )
+
+    # ------------------------------------------
+    # Normalize Q16 "Other"
+    # ------------------------------------------
+
+    if selected_question == \
+        "Q16 - Forecasting Method":
+
+        heatmap_df[question_col] = (
+            heatmap_df[question_col]
+            .apply(
+                lambda x:
+                "Other Forecasting Method"
+
+                if str(x).startswith(
+                    "Other"
+                )
+
+                else x
+            )
+        )
+
+    # ------------------------------------------
+    # Keep Top 10 Responses
+    # ------------------------------------------
+
+    top_responses = (
+        freq_df
+        .head(10)["Response"]
+        .tolist()
+    )
+
+    heatmap_df = heatmap_df[
+        heatmap_df[question_col]
+        .isin(top_responses)
+    ]
+
+    # ------------------------------------------
+    # Heatmap Matrix
+    # ------------------------------------------
+
+    cross_df = (
+        heatmap_df
+        .groupby(
+            [ORG_COL, question_col]
+        )
+        .size()
+        .unstack(fill_value=0)
+    )
+
+    fig2 = px.imshow(
+        cross_df,
+        aspect="auto",
+        title="Agency Comparison Heatmap"
+    )
+
+    st.plotly_chart(
+        fig2,
+        use_container_width=True
+    )
+
+except Exception as e:
+
+    st.warning(
+        f"Heatmap could not be generated: {e}"
+    )
 
 # ==========================================================
-# TABLE
+# RESPONSE SUMMARY
 # ==========================================================
 
-st.markdown("## Response Summary")
+st.markdown(
+    "## Response Summary"
+)
 
 st.dataframe(
     freq_df,
@@ -196,13 +327,19 @@ st.dataframe(
 )
 
 # ==========================================================
-# INTERPRETATION
+# EXECUTIVE INTERPRETATION
 # ==========================================================
 
 top_response = (
     freq_df.iloc[0]["Response"]
     if len(freq_df) > 0
     else "N/A"
+)
+
+top_percentage = (
+    freq_df.iloc[0]["Percentage"]
+    if len(freq_df) > 0
+    else 0
 )
 
 st.info(f"""
@@ -216,12 +353,21 @@ Most common response:
 
 **{top_response}**
 
+Response share:
+
+**{top_percentage}%**
+
+A total of **{len(responses)} responses**
+were analyzed across
+**{analysis_df[ORG_COL].nunique()} organizations**.
+
 The findings provide insight into
 forecasting maturity, confidence in
-deterioration modelling, and the role
-of forecasting in maintenance planning.
+deterioration modelling and the use
+of forecasting in decision-making.
 
-Variations between agencies highlight
-opportunities for improved analytical
-capacity and evidence-based planning.
+Differences across organizations may
+highlight opportunities for improved
+forecasting capability, evidence-based
+planning and asset management maturity.
 """)
