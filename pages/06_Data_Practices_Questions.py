@@ -122,7 +122,37 @@ if question_col not in analysis_df.columns:
 # KPI SECTION
 # ==========================================================
 
-responses = analysis_df[question_col].dropna()
+responses = analysis_df[
+    question_col
+].dropna()
+
+# ==========================================================
+# MULTI-SELECT QUESTIONS
+# ==========================================================
+
+question_code = (
+    selected_question
+    .split(" - ")[0]
+)
+
+MULTISELECT_QUESTIONS = [
+
+    "Q5",
+    "Q6",
+    "Q8",
+    "Q13"
+
+]
+
+if question_code in MULTISELECT_QUESTIONS:
+
+    responses = (
+        responses
+        .astype(str)
+        .str.split(";")
+        .explode()
+        .str.strip()
+    )
 
 c1, c2, c3 = st.columns(3)
 
