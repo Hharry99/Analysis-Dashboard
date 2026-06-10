@@ -184,6 +184,12 @@ freq_df = (
 )
 
 freq_df.columns = ["Response", "Count"]
+freq_df["Percentage"] = (
+    freq_df["Count"]
+    /
+    freq_df["Count"].sum()
+    * 100
+).round(1)
 
 fig = px.bar(
     freq_df,
