@@ -1,7 +1,6 @@
-
 # ==========================================================
 # FORECASTING QUESTION ANALYTICS
-# Sprint 3B.5A (Production Version)
+# Sprint 3B.5A - Final Production Version
 # ==========================================================
 
 import streamlit as st
@@ -79,6 +78,37 @@ QUESTION_MAP = {
 }
 
 # ==========================================================
+# QUESTION DESCRIPTIONS
+# ==========================================================
+
+QUESTION_DESCRIPTIONS = {
+
+    "Q16 - Forecasting Method":
+        "Methods used by agencies to forecast pavement deterioration and future condition.",
+
+    "Q17 - Forecast Confidence":
+        "Level of confidence in existing deterioration forecasts.",
+
+    "Q18 - Forecasting Barriers":
+        "Factors limiting the use of forecasting techniques and deterioration modelling.",
+
+    "Q19a - Multi-Year Budgeting":
+        "Influence of forecasting outputs on multi-year budgeting decisions.",
+
+    "Q19b - Treatment Timing Decisions":
+        "Influence of forecasting outputs on treatment timing decisions.",
+
+    "Q19c - Network-Level Optimisation":
+        "Influence of forecasting outputs on network-level optimisation.",
+
+    "Q19d - Risk-Based Prioritisation":
+        "Influence of forecasting outputs on risk-based prioritisation.",
+
+    "Q19e - Funding Justification":
+        "Influence of forecasting outputs on justification of funding requests."
+}
+
+# ==========================================================
 # PAGE HEADER
 # ==========================================================
 
@@ -114,6 +144,13 @@ analysis_df = master_df[
 selected_question = st.selectbox(
     "Select Forecasting Question",
     list(QUESTION_MAP.keys())
+)
+
+st.info(
+    QUESTION_DESCRIPTIONS.get(
+        selected_question,
+        ""
+    )
 )
 
 question_col = QUESTION_MAP[
@@ -169,18 +206,18 @@ if selected_question == \
 c1, c2, c3 = st.columns(3)
 
 c1.metric(
-    "Responses",
+    "Survey Responses",
     len(responses)
 )
 
 c2.metric(
-    "Organizations",
+    "Participating Agencies",
     analysis_df[ORG_COL]
     .nunique()
 )
 
 c3.metric(
-    "Unique Answers",
+    "Unique Response Categories",
     responses.nunique()
 )
 
@@ -210,6 +247,15 @@ freq_df["Percentage"] = (
     * 100
 ).round(1)
 
+freq_df = (
+    freq_df
+    .sort_values(
+        "Count",
+        ascending=False
+    )
+    .reset_index(drop=True)
+)
+
 fig = px.bar(
     freq_df,
     x="Count",
@@ -221,7 +267,12 @@ fig = px.bar(
 
 fig.update_layout(
     yaxis_title="Response",
-    xaxis_title="Count"
+    xaxis_title="Number of Responses"
+)
+
+fig.update_traces(
+    texttemplate="%{text}%",
+    textposition="outside"
 )
 
 st.plotly_chart(
@@ -247,10 +298,6 @@ try:
         .copy()
     )
 
-    # ------------------------------------------
-    # Normalize Q16 "Other"
-    # ------------------------------------------
-
     if selected_question == \
         "Q16 - Forecasting Method":
 
@@ -268,10 +315,6 @@ try:
             )
         )
 
-    # ------------------------------------------
-    # Keep Top 10 Responses
-    # ------------------------------------------
-
     top_responses = (
         freq_df
         .head(10)["Response"]
@@ -282,10 +325,6 @@ try:
         heatmap_df[question_col]
         .isin(top_responses)
     ]
-
-    # ------------------------------------------
-    # Heatmap Matrix
-    # ------------------------------------------
 
     cross_df = (
         heatmap_df
@@ -322,7 +361,13 @@ st.markdown(
 )
 
 st.dataframe(
-    freq_df,
+    freq_df[
+        [
+            "Response",
+            "Count",
+            "Percentage"
+        ]
+    ],
     use_container_width=True
 )
 
