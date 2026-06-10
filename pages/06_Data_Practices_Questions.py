@@ -232,15 +232,10 @@ if question_code in MULTISELECT_QUESTIONS:
         .str.split(";")
     )
 
-    heatmap_df = (
-        heatmap_df
-        .explode(question_col)
-    )
-
-    heatmap_df[question_col] = (
-        heatmap_df[question_col]
-        .str.strip()
-    )
+   heatmap_df = (
+    heatmap_df
+    .reset_index(drop=True)
+)
 
 heatmap_df = heatmap_df[
     heatmap_df[question_col]
