@@ -120,6 +120,48 @@ selected_question = st.selectbox(
     list(QUESTION_MAP.keys())
 )
 
+QUESTION_DESCRIPTIONS = {
+
+    "Q5 - Primary Involvement Areas":
+        "Areas where respondents are primarily involved in pavement management activities.",
+
+    "Q6 - Condition Data Sources":
+        "Sources used for pavement condition information.",
+
+    "Q7 - Data Collection Frequency":
+        "Frequency at which pavement condition data is collected.",
+
+    "Q8 - Data Types Collected":
+        "Types of pavement and asset information routinely collected.",
+
+    "Q9 - Data Adequacy":
+        "Perceptions of adequacy of available pavement data.",
+
+    "Q10 - Data Quality Assessment":
+        "Assessment of reliability and quality of pavement information.",
+
+    "Q11 - Data Storage Methods":
+        "Methods used to store and manage pavement data.",
+
+    "Q12 - Data Accessibility":
+        "Ease of access to pavement information.",
+
+    "Q13 - Data Management Challenges":
+        "Key challenges affecting data management.",
+
+    "Q14 - Data Governance Practices":
+        "Governance and stewardship of pavement information.",
+
+    "Q15 - Overall Data Maturity":
+        "Overall perception of data maturity."
+}
+
+st.info(
+    QUESTION_DESCRIPTIONS.get(
+        selected_question,
+        ""
+    )
+)
 question_col = QUESTION_MAP[selected_question]
 
 question_code = (
