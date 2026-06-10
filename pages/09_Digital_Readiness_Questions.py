@@ -349,16 +349,9 @@ st.markdown(
 )
 
 st.dataframe(
-    freq_df[
-        [
-            "Response",
-            "Count",
-            "Percentage"
-        ]
-    ],
+    freq_df,
     use_container_width=True
 )
-
 # ==========================================================
 # EXECUTIVE INTERPRETATION
 # ==========================================================
