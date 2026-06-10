@@ -26,9 +26,6 @@ from utils.data_cleaning import (
     index_diagnostics
 )
 
-master_df = clean_master_dataset(
-    master_df
-)
 # ==========================================================
 # PAGE CONFIG
 # ==========================================================
