@@ -103,6 +103,18 @@ c2.metric("Highest RRI", highest_rri)
 c3.metric("Lowest RRI", lowest_rri)
 c4.metric("Organizations", agencies)
 
+if analysis_df["RRI"].nunique() <= 1:
+
+    st.warning("""
+    RRI contains only one unique value.
+
+    This suggests the index may have been
+    reconstructed as a constant rather than
+    calculated per respondent.
+
+    Review indices_dataset.csv.
+    """)
+
 # ==========================================================
 # RRI DISTRIBUTION
 # ==========================================================
