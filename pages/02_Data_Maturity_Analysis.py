@@ -38,6 +38,9 @@ def load_data():
     return master, indices
 
 master_df, indices_df = load_data()
+master_df = clean_master_dataset(
+    master_df
+)
 
 ORG_COL = "Q1. What agency do you work for?"
 
