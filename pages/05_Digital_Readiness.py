@@ -6,6 +6,9 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from utils.data_cleaning import (
+    clean_master_dataset
+)
 
 # ==========================================================
 # PAGE CONFIG
@@ -35,6 +38,9 @@ def load_data():
     return master, indices
 
 master_df, indices_df = load_data()
+master_df = clean_master_dataset(
+    master_df
+)
 
 ORG_COL = "Q1. What agency do you work for?"
 
