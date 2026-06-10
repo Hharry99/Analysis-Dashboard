@@ -210,9 +210,46 @@ st.plotly_chart(
 
 st.markdown("## Organization Comparison")
 
+top_responses = (
+    freq_df
+    .head(10)["Response"]
+)
+
+heatmap_df = analysis_df.copy()
+
+if question_code in MULTISELECT_QUESTIONS:
+
+    heatmap_df = (
+        analysis_df[
+            [ORG_COL, question_col]
+        ]
+        .dropna()
+    )
+
+    heatmap_df[question_col] = (
+        heatmap_df[question_col]
+        .astype(str)
+        .str.split(";")
+    )
+
+    heatmap_df = (
+        heatmap_df
+        .explode(question_col)
+    )
+
+    heatmap_df[question_col] = (
+        heatmap_df[question_col]
+        .str.strip()
+    )
+
+heatmap_df = heatmap_df[
+    heatmap_df[question_col]
+    .isin(top_responses)
+]
+
 cross_df = pd.crosstab(
-    analysis_df[ORG_COL],
-    analysis_df[question_col]
+    heatmap_df[ORG_COL],
+    heatmap_df[question_col]
 )
 
 fig2 = px.imshow(
