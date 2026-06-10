@@ -1,6 +1,7 @@
+
 # ==========================================================
 # DATA PRACTICES QUESTION ANALYTICS
-# Sprint 3B.5A
+# Sprint 3B.5A (Production Version)
 # ==========================================================
 
 import streamlit as st
@@ -69,8 +70,19 @@ QUESTION_MAP = {
         [c for c in master_df.columns if c.startswith("Q14")][0],
 
     "Q15 - Overall Data Maturity":
-        [c for c in master_df.columns if c.startswith("Q15")][0],
+        [c for c in master_df.columns if c.startswith("Q15")][0]
 }
+
+# ==========================================================
+# MULTISELECT QUESTIONS
+# ==========================================================
+
+MULTISELECT_QUESTIONS = [
+    "Q5",
+    "Q6",
+    "Q8",
+    "Q13"
+]
 
 # ==========================================================
 # PAGE HEADER
@@ -79,15 +91,19 @@ QUESTION_MAP = {
 st.title("📋 Data Practices Question Analytics")
 
 st.markdown("""
-This page explores the underlying survey questions that contribute to
-Data Maturity across participating organizations.
+This page explores the underlying survey questions that contribute
+to Data Maturity across participating organizations.
 """)
 
 # ==========================================================
 # FILTERS
 # ==========================================================
 
-agencies = sorted(master_df[ORG_COL].dropna().unique())
+agencies = sorted(
+    master_df[ORG_COL]
+    .dropna()
+    .unique()
+)
 
 selected_agencies = st.multiselect(
     "Filter Organization",
@@ -106,6 +122,11 @@ selected_question = st.selectbox(
 
 question_col = QUESTION_MAP[selected_question]
 
+question_code = (
+    selected_question
+    .split(" - ")[0]
+)
+
 # ==========================================================
 # VALIDATION
 # ==========================================================
@@ -113,36 +134,18 @@ question_col = QUESTION_MAP[selected_question]
 if question_col not in analysis_df.columns:
 
     st.error(
-        f"{question_col} not found."
+        f"Column not found: {question_col}"
     )
-
     st.stop()
 
 # ==========================================================
-# KPI SECTION
+# RESPONSE PROCESSING
 # ==========================================================
 
-responses = analysis_df[
-    question_col
-].dropna()
-
-# ==========================================================
-# MULTI-SELECT QUESTIONS
-# ==========================================================
-
-question_code = (
-    selected_question
-    .split(" - ")[0]
+responses = (
+    analysis_df[question_col]
+    .dropna()
 )
-
-MULTISELECT_QUESTIONS = [
-
-    "Q5",
-    "Q6",
-    "Q8",
-    "Q13"
-
-]
 
 if question_code in MULTISELECT_QUESTIONS:
 
@@ -153,6 +156,10 @@ if question_code in MULTISELECT_QUESTIONS:
         .explode()
         .str.strip()
     )
+
+# ==========================================================
+# KPI SECTION
+# ==========================================================
 
 c1, c2, c3 = st.columns(3)
 
@@ -183,7 +190,11 @@ freq_df = (
     .reset_index()
 )
 
-freq_df.columns = ["Response", "Count"]
+freq_df.columns = [
+    "Response",
+    "Count"
+]
+
 freq_df["Percentage"] = (
     freq_df["Count"]
     /
@@ -196,7 +207,13 @@ fig = px.bar(
     x="Count",
     y="Response",
     orientation="h",
+    text="Percentage",
     title=f"{selected_question} Response Distribution"
+)
+
+fig.update_layout(
+    yaxis_title="Response",
+    xaxis_title="Count"
 )
 
 st.plotly_chart(
@@ -210,56 +227,88 @@ st.plotly_chart(
 
 st.markdown("## Organization Comparison")
 
-top_responses = (
-    freq_df
-    .head(10)["Response"]
-)
+try:
 
-heatmap_df = analysis_df.copy()
+    if question_code in MULTISELECT_QUESTIONS:
 
-if question_code in MULTISELECT_QUESTIONS:
+        heatmap_df = (
+            analysis_df[
+                [ORG_COL, question_col]
+            ]
+            .dropna()
+            .copy()
+        )
 
-    heatmap_df = (
-        analysis_df[
-            [ORG_COL, question_col]
-        ]
-        .dropna()
+        heatmap_df[question_col] = (
+            heatmap_df[question_col]
+            .astype(str)
+            .str.split(";")
+        )
+
+        heatmap_df = (
+            heatmap_df
+            .explode(question_col)
+        )
+
+        heatmap_df[question_col] = (
+            heatmap_df[question_col]
+            .str.strip()
+        )
+
+        heatmap_df = (
+            heatmap_df
+            .reset_index(drop=True)
+        )
+
+    else:
+
+        heatmap_df = (
+            analysis_df[
+                [ORG_COL, question_col]
+            ]
+            .dropna()
+            .copy()
+        )
+
+    top_responses = (
+        freq_df
+        .head(10)["Response"]
+        .tolist()
     )
 
-    heatmap_df[question_col] = (
+    heatmap_df = heatmap_df[
         heatmap_df[question_col]
-        .astype(str)
-        .str.split(";")
+        .isin(top_responses)
+    ]
+
+    cross_df = (
+        heatmap_df
+        .groupby(
+            [ORG_COL, question_col]
+        )
+        .size()
+        .unstack(fill_value=0)
     )
 
-   heatmap_df = (
-    heatmap_df
-    .reset_index(drop=True)
-)
+    fig2 = px.imshow(
+        cross_df,
+        aspect="auto",
+        title="Response Heatmap by Organization"
+    )
 
-heatmap_df = heatmap_df[
-    heatmap_df[question_col]
-    .isin(top_responses)
-]
+    st.plotly_chart(
+        fig2,
+        use_container_width=True
+    )
 
-cross_df = pd.crosstab(
-    heatmap_df[ORG_COL],
-    heatmap_df[question_col]
-)
+except Exception as e:
 
-fig2 = px.imshow(
-    cross_df,
-    aspect="auto",
-    title="Response Heatmap by Organization"
-)
-
-st.plotly_chart(
-    fig2,
-    use_container_width=True
-)
+    st.warning(
+        f"Heatmap could not be generated: {e}"
+    )
 
 # ==========================================================
-# RESPONSE TABLE
+# RESPONSE SUMMARY
 # ==========================================================
 
 st.markdown("## Response Summary")
@@ -299,10 +348,16 @@ Response share:
 
 **{top_percentage}%**
 
-The distribution illustrates how organizations currently manage
-data collection, storage, governance and pavement information
-practices.
+A total of **{len(responses)} responses**
+were analyzed across **{analysis_df[ORG_COL].nunique()} organizations**.
 
-Differences across agencies may indicate opportunities for
-benchmarking and institutional learning.
+The results provide insight into current
+data collection, management, governance,
+storage and utilization practices across
+Kenya's road agencies.
+
+Differences across organizations may
+highlight opportunities for benchmarking,
+capacity building and improved data
+governance practices.
 """)
