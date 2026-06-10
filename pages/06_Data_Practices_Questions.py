@@ -1,1 +1,209 @@
+# ==========================================================
+# DATA PRACTICES QUESTION ANALYTICS
+# Sprint 3B.5A
+# ==========================================================
 
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+
+from utils.data_cleaning import clean_master_dataset
+
+# ==========================================================
+# PAGE CONFIG
+# ==========================================================
+
+st.set_page_config(
+    page_title="Data Practices Questions",
+    page_icon="📋",
+    layout="wide"
+)
+
+# ==========================================================
+# LOAD DATA
+# ==========================================================
+
+@st.cache_data
+def load_data():
+    return pd.read_csv("data/clean_master.csv")
+
+master_df = load_data()
+master_df = clean_master_dataset(master_df)
+
+# ==========================================================
+# COLUMN DEFINITIONS
+# ==========================================================
+
+ORG_COL = "Q1. What agency do you work for?"
+
+QUESTION_MAP = {
+
+    "Q5": [c for c in master_df.columns if c.startswith("Q5")][0],
+    "Q6": [c for c in master_df.columns if c.startswith("Q6")][0],
+    "Q7": [c for c in master_df.columns if c.startswith("Q7")][0],
+    "Q8": [c for c in master_df.columns if c.startswith("Q8")][0],
+    "Q9": [c for c in master_df.columns if c.startswith("Q9")][0],
+    "Q10": [c for c in master_df.columns if c.startswith("Q10")][0],
+    "Q11": [c for c in master_df.columns if c.startswith("Q11")][0],
+    "Q12": [c for c in master_df.columns if c.startswith("Q12")][0],
+    "Q13": [c for c in master_df.columns if c.startswith("Q13")][0],
+    "Q14": [c for c in master_df.columns if c.startswith("Q14")][0],
+    "Q15": [c for c in master_df.columns if c.startswith("Q15")][0],
+}
+
+# ==========================================================
+# PAGE HEADER
+# ==========================================================
+
+st.title("📋 Data Practices Question Analytics")
+
+st.markdown("""
+This page explores the underlying survey questions that contribute to
+Data Maturity across participating organizations.
+""")
+
+# ==========================================================
+# FILTERS
+# ==========================================================
+
+agencies = sorted(master_df[ORG_COL].dropna().unique())
+
+selected_agencies = st.multiselect(
+    "Filter Organization",
+    agencies,
+    default=agencies
+)
+
+analysis_df = master_df[
+    master_df[ORG_COL].isin(selected_agencies)
+]
+
+selected_question = st.selectbox(
+    "Select Question",
+    list(QUESTION_MAP.keys())
+)
+
+question_col = QUESTION_MAP[selected_question]
+
+# ==========================================================
+# VALIDATION
+# ==========================================================
+
+if question_col not in analysis_df.columns:
+
+    st.error(
+        f"{question_col} not found."
+    )
+
+    st.stop()
+
+# ==========================================================
+# KPI SECTION
+# ==========================================================
+
+responses = analysis_df[question_col].dropna()
+
+c1, c2, c3 = st.columns(3)
+
+c1.metric(
+    "Responses",
+    len(responses)
+)
+
+c2.metric(
+    "Organizations",
+    analysis_df[ORG_COL].nunique()
+)
+
+c3.metric(
+    "Unique Answers",
+    responses.nunique()
+)
+
+# ==========================================================
+# RESPONSE DISTRIBUTION
+# ==========================================================
+
+st.markdown("## Response Distribution")
+
+freq_df = (
+    responses
+    .value_counts()
+    .reset_index()
+)
+
+freq_df.columns = ["Response", "Count"]
+
+fig = px.bar(
+    freq_df,
+    x="Count",
+    y="Response",
+    orientation="h",
+    title=f"{selected_question} Response Distribution"
+)
+
+st.plotly_chart(
+    fig,
+    use_container_width=True
+)
+
+# ==========================================================
+# ORGANIZATION COMPARISON
+# ==========================================================
+
+st.markdown("## Organization Comparison")
+
+cross_df = pd.crosstab(
+    analysis_df[ORG_COL],
+    analysis_df[question_col]
+)
+
+fig2 = px.imshow(
+    cross_df,
+    aspect="auto",
+    title="Response Heatmap by Organization"
+)
+
+st.plotly_chart(
+    fig2,
+    use_container_width=True
+)
+
+# ==========================================================
+# RESPONSE TABLE
+# ==========================================================
+
+st.markdown("## Response Summary")
+
+st.dataframe(
+    freq_df,
+    use_container_width=True
+)
+
+# ==========================================================
+# INTERPRETATION
+# ==========================================================
+
+top_response = (
+    freq_df.iloc[0]["Response"]
+    if len(freq_df) > 0
+    else "N/A"
+)
+
+st.info(f"""
+### Executive Interpretation
+
+Question analyzed:
+**{selected_question}**
+
+Most common response:
+
+**{top_response}**
+
+The distribution illustrates how organizations currently manage
+data collection, storage, governance and pavement information
+practices.
+
+Differences across agencies may indicate opportunities for
+benchmarking and institutional learning.
+""")
