@@ -991,4 +991,14 @@ if DEVELOPER_MODE:
         st.write(theme_df.columns)
         st.write(indices_df.columns)
         st.write(benchmark_df.columns)
+        st.markdown("### Index Diagnostics")
+
+diag_df = index_diagnostics(
+    indices_df
+)
+
+st.dataframe(
+    diag_df,
+    use_container_width=True
+)
 
