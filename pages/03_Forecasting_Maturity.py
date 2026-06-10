@@ -95,6 +95,18 @@ fig_hist = px.histogram(
 
 st.plotly_chart(fig_hist,use_container_width=True)
 
+if analysis_df["FMI"].nunique() <= 1:
+
+    st.warning("""
+    FMI contains only one unique value.
+
+    This suggests the index may have been
+    reconstructed as a constant rather than
+    calculated per respondent.
+
+    Review indices_dataset.csv.
+    """)
+
 # ==========================================================
 # FMI BY AGENCY
 # ==========================================================
