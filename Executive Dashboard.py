@@ -954,6 +954,29 @@ with st.expander("Dataset Health"):
         use_container_width=True
     )
 
+st.markdown("### Data Quality Summary")
+
+agency_col = "Q1. What agency do you work for?"
+position_col = "Q3. What position do you currently hold?"
+
+dq_df = pd.DataFrame({
+
+    "Metric":[
+        "Unique Agencies",
+        "Unique Positions"
+    ],
+
+    "Value":[
+        master_df[agency_col].nunique(),
+        master_df[position_col].nunique()
+    ]
+})
+
+st.dataframe(
+    dq_df,
+    use_container_width=True
+)
+
 # ==========================================================
 # DEVELOPER DIAGNOSTICS
 # ==========================================================
