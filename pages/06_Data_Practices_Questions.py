@@ -298,6 +298,9 @@ Most common response:
 
 **{top_response}**
 
+Response share:
+
+**{top_percentage}%**
 The distribution illustrates how organizations currently manage
 data collection, storage, governance and pavement information
 practices.
