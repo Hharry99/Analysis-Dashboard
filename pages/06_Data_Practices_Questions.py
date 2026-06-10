@@ -283,11 +283,13 @@ top_response = (
     if len(freq_df) > 0
     else "N/A"
 )
+
 top_percentage = (
     freq_df.iloc[0]["Percentage"]
     if len(freq_df) > 0
     else 0
 )
+
 st.info(f"""
 ### Executive Interpretation
 
@@ -301,6 +303,7 @@ Most common response:
 Response share:
 
 **{top_percentage}%**
+
 The distribution illustrates how organizations currently manage
 data collection, storage, governance and pavement information
 practices.
