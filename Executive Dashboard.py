@@ -198,6 +198,10 @@ except Exception as e:
     st.error(f"Dataset Loading Error: {e}")
     st.stop()
 
+master_df = clean_master_dataset(
+    master_df
+)
+
 # ==========================================================
 # AUTO DETECT COLUMNS
 # ==========================================================
