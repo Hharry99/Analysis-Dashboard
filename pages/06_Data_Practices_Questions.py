@@ -38,17 +38,38 @@ ORG_COL = "Q1. What agency do you work for?"
 
 QUESTION_MAP = {
 
-    "Q5": [c for c in master_df.columns if c.startswith("Q5")][0],
-    "Q6": [c for c in master_df.columns if c.startswith("Q6")][0],
-    "Q7": [c for c in master_df.columns if c.startswith("Q7")][0],
-    "Q8": [c for c in master_df.columns if c.startswith("Q8")][0],
-    "Q9": [c for c in master_df.columns if c.startswith("Q9")][0],
-    "Q10": [c for c in master_df.columns if c.startswith("Q10")][0],
-    "Q11": [c for c in master_df.columns if c.startswith("Q11")][0],
-    "Q12": [c for c in master_df.columns if c.startswith("Q12")][0],
-    "Q13": [c for c in master_df.columns if c.startswith("Q13")][0],
-    "Q14": [c for c in master_df.columns if c.startswith("Q14")][0],
-    "Q15": [c for c in master_df.columns if c.startswith("Q15")][0],
+    "Q5 - Primary Involvement Areas":
+        [c for c in master_df.columns if c.startswith("Q5")][0],
+
+    "Q6 - Condition Data Sources":
+        [c for c in master_df.columns if c.startswith("Q6")][0],
+
+    "Q7 - Data Collection Frequency":
+        [c for c in master_df.columns if c.startswith("Q7")][0],
+
+    "Q8 - Data Types Collected":
+        [c for c in master_df.columns if c.startswith("Q8")][0],
+
+    "Q9 - Data Adequacy":
+        [c for c in master_df.columns if c.startswith("Q9")][0],
+
+    "Q10 - Data Quality Assessment":
+        [c for c in master_df.columns if c.startswith("Q10")][0],
+
+    "Q11 - Data Storage Methods":
+        [c for c in master_df.columns if c.startswith("Q11")][0],
+
+    "Q12 - Data Accessibility":
+        [c for c in master_df.columns if c.startswith("Q12")][0],
+
+    "Q13 - Data Management Challenges":
+        [c for c in master_df.columns if c.startswith("Q13")][0],
+
+    "Q14 - Data Governance Practices":
+        [c for c in master_df.columns if c.startswith("Q14")][0],
+
+    "Q15 - Overall Data Maturity":
+        [c for c in master_df.columns if c.startswith("Q15")][0],
 }
 
 # ==========================================================
