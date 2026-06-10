@@ -242,6 +242,13 @@ freq_df["Percentage"] = (
     /
     freq_df["Count"].sum()
     * 100
+)freq_df = (
+    freq_df
+    .sort_values(
+        "Count",
+        ascending=False
+    )
+    .reset_index(drop=True)
 ).round(1)
 
 fig = px.bar(
@@ -356,7 +363,13 @@ except Exception as e:
 st.markdown("## Response Summary")
 
 st.dataframe(
-    freq_df,
+    freq_df[
+        [
+            "Response",
+            "Count",
+            "Percentage"
+        ]
+    ],
     use_container_width=True
 )
 
