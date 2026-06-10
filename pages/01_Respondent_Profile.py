@@ -29,8 +29,9 @@ def load_data():
     return pd.read_csv("data/clean_master.csv")
 
 df = load_data()
-master_df = clean_master_dataset(
-    master_df
+
+df = clean_master_dataset(
+    df
 )
 # ==========================================================
 # COLUMN DEFINITIONS
