@@ -16,7 +16,7 @@ from utils.data_cleaning import clean_master_dataset
 
 st.set_page_config(
     page_title="Forecasting Maturity Analysis",
-    page_icon="🔮",
+    page_icon="📊",
     layout="wide"
 )
 
