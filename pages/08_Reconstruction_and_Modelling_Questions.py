@@ -1,7 +1,6 @@
-
 # ==========================================================
 # RECONSTRUCTION AND MODELLING QUESTION ANALYTICS
-# Sprint 3B.5B - Final Production Version
+# Sprint 3B.5B - Framework Aligned Production Version
 # ==========================================================
 
 import streamlit as st
@@ -26,54 +25,102 @@ st.set_page_config(
 
 @st.cache_data
 def load_data():
-
     return pd.read_csv(
         "data/clean_master.csv"
     )
 
+
 master_df = load_data()
+
 master_df = clean_master_dataset(
     master_df
 )
 
 # ==========================================================
-# CORE COLUMN DEFINITIONS
+# COLUMN DEFINITIONS
 # ==========================================================
 
-ORG_COL = (
-    "Q1. What agency do you work for?"
-)
+AGENCY_COL = "Q1. What agency do you work for?"
 
 # ==========================================================
-# RECONSTRUCTION QUESTION MAP
+# VALIDATION
+# ==========================================================
+
+if AGENCY_COL not in master_df.columns:
+
+    st.error(
+        f"Missing required column: {AGENCY_COL}"
+    )
+
+    st.stop()
+
+# ==========================================================
+# HELPER FUNCTIONS
+# ==========================================================
+
+def get_question_column_by_prefix(question_code):
+
+    matches = [
+        col for col in master_df.columns
+        if col.startswith(question_code)
+    ]
+
+    if matches:
+        return matches[0]
+
+    return None
+
+
+def get_question_column_by_text(search_text):
+
+    matches = [
+        col for col in master_df.columns
+        if search_text.lower() in col.lower()
+    ]
+
+    if matches:
+        return matches[0]
+
+    return None
+
+# ==========================================================
+# QUESTION MAP
 # ==========================================================
 
 QUESTION_MAP = {
 
     "Q20 - Willingness to Use Reconstructed Data":
-        [c for c in master_df.columns
-         if c.startswith("Q20")][0],
+        get_question_column_by_prefix("Q20"),
 
     "Q21 - Conditions for Trusting Reconstructed Data":
-        [c for c in master_df.columns
-         if c.startswith("Q21")][0],
+        get_question_column_by_prefix("Q21"),
 
     "Q22a - Network-Level Performance Analysis":
-        [c for c in master_df.columns
-         if "Network-level performance analysis" in c][0],
+        get_question_column_by_text("Network-level performance analysis"),
 
     "Q22b - Life-Cycle Modelling and Long-Term Planning":
-        [c for c in master_df.columns
-         if "Life-cycle modelling" in c][0],
+        get_question_column_by_text("Life-cycle modelling"),
 
     "Q22c - Treatment Timing and Optimisation":
-        [c for c in master_df.columns
-         if "Treatment timing" in c][0],
+        get_question_column_by_text("Treatment timing"),
 
     "Q22d - Budget Allocation and Justification":
-        [c for c in master_df.columns
-         if "Budget allocation" in c][0]
+        get_question_column_by_text("Budget allocation")
 }
+
+QUESTION_MAP = {
+    key: value
+    for key, value in QUESTION_MAP.items()
+    if value is not None
+}
+
+if not QUESTION_MAP:
+
+    st.error(
+        "No Reconstruction and Modelling question columns were found in the dataset."
+    )
+
+    st.stop()
 
 # ==========================================================
 # QUESTION DESCRIPTIONS
@@ -83,40 +130,40 @@ QUESTION_DESCRIPTIONS = {
 
     "Q20 - Willingness to Use Reconstructed Data":
         """
-        Assesses the likelihood that respondents would use
-        analytically reconstructed or model-estimated pavement
-        condition data where direct condition data are unavailable.
+        Assesses the likelihood that respondents would use analytically
+        reconstructed or model-estimated pavement condition data where
+        direct condition data are unavailable.
         """,
 
     "Q21 - Conditions for Trusting Reconstructed Data":
         """
-        Identifies the requirements respondents consider necessary
-        before relying on reconstructed condition information for
-        planning and investment decisions.
+        Identifies the requirements respondents consider necessary before
+        relying on reconstructed condition information for planning and
+        investment decisions.
         """,
 
     "Q22a - Network-Level Performance Analysis":
         """
-        Assesses the suitability of reconstructed condition data
-        for network performance monitoring and analysis.
+        Assesses the suitability of reconstructed condition data for network
+        performance monitoring and analysis.
         """,
 
     "Q22b - Life-Cycle Modelling and Long-Term Planning":
         """
-        Assesses the suitability of reconstructed condition data
-        for long-term pavement management and life-cycle planning.
+        Assesses the suitability of reconstructed condition data for long-term
+        pavement management and life-cycle planning.
         """,
 
     "Q22c - Treatment Timing and Optimisation":
         """
-        Assesses the suitability of reconstructed condition data
-        for maintenance timing and intervention optimisation.
+        Assesses the suitability of reconstructed condition data for maintenance
+        timing and intervention optimisation.
         """,
 
     "Q22d - Budget Allocation and Justification":
         """
-        Assesses the suitability of reconstructed condition data
-        for funding allocation and investment justification.
+        Assesses the suitability of reconstructed condition data for funding
+        allocation and investment justification.
         """
 }
 
@@ -133,13 +180,12 @@ MULTISELECT_QUESTIONS = [
 # ==========================================================
 
 st.title(
-    "🏗️ Reconstruction & Modelling Questions"
+    "Reconstruction & Modelling Questions"
 )
 
 st.markdown("""
-This page examines stakeholder attitudes towards
-reconstructed condition data, model-estimated pavement
-conditions and the potential application of such data
+This page examines stakeholder attitudes towards reconstructed condition data,
+model-estimated pavement conditions and the potential application of such data
 in road asset management decision-making.
 """)
 
@@ -148,31 +194,33 @@ in road asset management decision-making.
 # ==========================================================
 
 agencies = sorted(
-    master_df[
-        ORG_COL
-    ]
+    master_df[AGENCY_COL]
     .dropna()
     .unique()
 )
 
 selected_agencies = st.multiselect(
-    "Filter Organization",
+    "Filter Agency",
     agencies,
     default=agencies
 )
 
 analysis_df = master_df[
-    master_df[
-        ORG_COL
-    ]
+    master_df[AGENCY_COL]
     .isin(selected_agencies)
 ]
 
+if analysis_df.empty:
+
+    st.warning(
+        "No records found for the selected agency filter."
+    )
+
+    st.stop()
+
 selected_question = st.selectbox(
     "Select Reconstruction Question",
-    list(
-        QUESTION_MAP.keys()
-    )
+    list(QUESTION_MAP.keys())
 )
 
 st.info(
@@ -192,7 +240,7 @@ question_code = (
 )
 
 # ==========================================================
-# VALIDATION
+# QUESTION VALIDATION
 # ==========================================================
 
 if question_col not in analysis_df.columns:
@@ -208,9 +256,7 @@ if question_col not in analysis_df.columns:
 # ==========================================================
 
 responses = (
-    analysis_df[
-        question_col
-    ]
+    analysis_df[question_col]
     .dropna()
 )
 
@@ -223,6 +269,26 @@ if question_code in MULTISELECT_QUESTIONS:
         .explode()
         .str.strip()
     )
+
+else:
+
+    responses = (
+        responses
+        .astype(str)
+        .str.strip()
+    )
+
+responses = responses[
+    responses.astype(str).str.len() > 0
+]
+
+if responses.empty:
+
+    st.warning(
+        "No valid responses were found for the selected question and agency filter."
+    )
+
+    st.stop()
 
 # ==========================================================
 # KPI SECTION
@@ -237,9 +303,7 @@ c1.metric(
 
 c2.metric(
     "Participating Agencies",
-    analysis_df[
-        ORG_COL
-    ].nunique()
+    analysis_df[AGENCY_COL].nunique()
 )
 
 c3.metric(
@@ -279,9 +343,7 @@ freq_df = (
         "Count",
         ascending=False
     )
-    .reset_index(
-        drop=True
-    )
+    .reset_index(drop=True)
 )
 
 fig = px.bar(
@@ -295,7 +357,8 @@ fig = px.bar(
 
 fig.update_layout(
     yaxis_title="Response",
-    xaxis_title="Number of Responses"
+    xaxis_title="Number of Responses",
+    height=600
 )
 
 fig.update_traces(
@@ -309,11 +372,11 @@ st.plotly_chart(
 )
 
 # ==========================================================
-# ORGANIZATION COMPARISON
+# AGENCY COMPARISON
 # ==========================================================
 
 st.markdown(
-    "## Organization Comparison"
+    "## Agency Comparison"
 )
 
 try:
@@ -323,7 +386,7 @@ try:
         heatmap_df = (
             analysis_df[
                 [
-                    ORG_COL,
+                    AGENCY_COL,
                     question_col
                 ]
             ]
@@ -331,29 +394,20 @@ try:
             .copy()
         )
 
-        heatmap_df[
-            question_col
-        ] = (
-            heatmap_df[
-                question_col
-            ]
+        heatmap_df[question_col] = (
+            heatmap_df[question_col]
             .astype(str)
             .str.split(";")
         )
 
         heatmap_df = (
             heatmap_df
-            .explode(
-                question_col
-            )
+            .explode(question_col)
         )
 
-        heatmap_df[
-            question_col
-        ] = (
-            heatmap_df[
-                question_col
-            ]
+        heatmap_df[question_col] = (
+            heatmap_df[question_col]
+            .astype(str)
             .str.strip()
         )
 
@@ -362,12 +416,18 @@ try:
         heatmap_df = (
             analysis_df[
                 [
-                    ORG_COL,
+                    AGENCY_COL,
                     question_col
                 ]
             ]
             .dropna()
             .copy()
+        )
+
+        heatmap_df[question_col] = (
+            heatmap_df[question_col]
+            .astype(str)
+            .str.strip()
         )
 
     top_responses = (
@@ -377,32 +437,35 @@ try:
     )
 
     heatmap_df = heatmap_df[
-        heatmap_df[
-            question_col
-        ]
-        .isin(
-            top_responses
-        )
+        heatmap_df[question_col]
+        .isin(top_responses)
     ]
 
     cross_df = (
         heatmap_df
         .groupby(
             [
-                ORG_COL,
+                AGENCY_COL,
                 question_col
             ]
         )
         .size()
-        .unstack(
-            fill_value=0
-        )
+        .unstack(fill_value=0)
     )
 
     fig2 = px.imshow(
         cross_df,
         aspect="auto",
-        title="Response Heatmap by Organization"
+        title="Response Heatmap by Agency",
+        labels=dict(
+            x="Response",
+            y="Agency",
+            color="Count"
+        )
+    )
+
+    fig2.update_layout(
+        height=650
     )
 
     st.plotly_chart(
@@ -425,9 +488,16 @@ st.markdown(
 )
 
 st.dataframe(
-    freq_df,
+    freq_df[
+        [
+            "Response",
+            "Count",
+            "Percentage"
+        ]
+    ],
     use_container_width=True
 )
+
 # ==========================================================
 # EXECUTIVE INTERPRETATION
 # ==========================================================
@@ -461,16 +531,13 @@ Response share:
 
 A total of **{len(responses)} responses**
 were analyzed across
-**{analysis_df[ORG_COL].nunique()} organizations**.
+**{analysis_df[AGENCY_COL].nunique()} agencies**.
 
-The results provide insight into stakeholder
-confidence in reconstructed pavement condition
-data and the potential role of analytical
-reconstruction techniques in supporting
-asset management decisions.
+The results provide insight into stakeholder confidence in reconstructed
+pavement condition data and the potential role of analytical reconstruction
+techniques in supporting road asset management decisions.
 
-Differences across organizations may indicate
-varying levels of readiness to adopt model-based
-approaches for network management, planning,
-prioritisation and funding allocation.
+Differences across agencies may indicate varying levels of readiness to adopt
+model-based approaches for network management, planning, prioritisation and
+funding allocation.
 """)
