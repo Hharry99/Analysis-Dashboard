@@ -1,7 +1,6 @@
-
 # ==========================================================
 # DATA PRACTICES QUESTION ANALYTICS
-# Sprint 3B.5A - Final Production Version
+# Sprint 3B.5A - Framework Aligned Production Version
 # ==========================================================
 
 import streamlit as st
@@ -30,6 +29,7 @@ def load_data():
         "data/clean_master.csv"
     )
 
+
 master_df = load_data()
 master_df = clean_master_dataset(master_df)
 
@@ -37,7 +37,35 @@ master_df = clean_master_dataset(master_df)
 # COLUMN DEFINITIONS
 # ==========================================================
 
-ORG_COL = "Q1. What agency do you work for?"
+AGENCY_COL = "Q1. What agency do you work for?"
+
+# ==========================================================
+# VALIDATION
+# ==========================================================
+
+if AGENCY_COL not in master_df.columns:
+
+    st.error(
+        f"Missing required column: {AGENCY_COL}"
+    )
+
+    st.stop()
+
+# ==========================================================
+# HELPER FUNCTION FOR QUESTION COLUMNS
+# ==========================================================
+
+def get_question_column(question_code):
+
+    matches = [
+        col for col in master_df.columns
+        if col.startswith(question_code)
+    ]
+
+    if matches:
+        return matches[0]
+
+    return None
 
 # ==========================================================
 # QUESTION MAP
@@ -46,38 +74,52 @@ ORG_COL = "Q1. What agency do you work for?"
 QUESTION_MAP = {
 
     "Q5 - Primary Involvement Areas":
-        [c for c in master_df.columns if c.startswith("Q5")][0],
+        get_question_column("Q5"),
 
     "Q6 - Condition Data Sources":
-        [c for c in master_df.columns if c.startswith("Q6")][0],
+        get_question_column("Q6"),
 
     "Q7 - Data Collection Frequency":
-        [c for c in master_df.columns if c.startswith("Q7")][0],
+        get_question_column("Q7"),
 
     "Q8 - Data Types Collected":
-        [c for c in master_df.columns if c.startswith("Q8")][0],
+        get_question_column("Q8"),
 
     "Q9 - Data Adequacy":
-        [c for c in master_df.columns if c.startswith("Q9")][0],
+        get_question_column("Q9"),
 
     "Q10 - Data Quality Assessment":
-        [c for c in master_df.columns if c.startswith("Q10")][0],
+        get_question_column("Q10"),
 
     "Q11 - Data Storage Methods":
-        [c for c in master_df.columns if c.startswith("Q11")][0],
+        get_question_column("Q11"),
 
     "Q12 - Data Accessibility":
-        [c for c in master_df.columns if c.startswith("Q12")][0],
+        get_question_column("Q12"),
 
     "Q13 - Data Management Challenges":
-        [c for c in master_df.columns if c.startswith("Q13")][0],
+        get_question_column("Q13"),
 
     "Q14 - Data Governance Practices":
-        [c for c in master_df.columns if c.startswith("Q14")][0],
+        get_question_column("Q14"),
 
     "Q15 - Overall Data Maturity":
-        [c for c in master_df.columns if c.startswith("Q15")][0]
+        get_question_column("Q15")
 }
+
+QUESTION_MAP = {
+    key: value
+    for key, value in QUESTION_MAP.items()
+    if value is not None
+}
+
+if not QUESTION_MAP:
+
+    st.error(
+        "No Data Practices question columns were found in the dataset."
+    )
+
+    st.stop()
 
 # ==========================================================
 # QUESTION DESCRIPTIONS
@@ -116,7 +158,7 @@ QUESTION_DESCRIPTIONS = {
         "Governance and stewardship of pavement information.",
 
     "Q15 - Overall Data Maturity":
-        "Overall perception of organizational data maturity."
+        "Overall perception of agency data maturity."
 }
 
 # ==========================================================
@@ -134,11 +176,13 @@ MULTISELECT_QUESTIONS = [
 # PAGE HEADER
 # ==========================================================
 
-st.title("📋 Data Practices Question Analytics")
+st.title(
+    "Data Practices Question Analytics"
+)
 
 st.markdown("""
 This page explores the survey questions that contribute
-to organizational Data Maturity.
+to agency Data Maturity.
 """)
 
 # ==========================================================
@@ -146,19 +190,19 @@ to organizational Data Maturity.
 # ==========================================================
 
 agencies = sorted(
-    master_df[ORG_COL]
+    master_df[AGENCY_COL]
     .dropna()
     .unique()
 )
 
 selected_agencies = st.multiselect(
-    "Filter Organization",
+    "Filter Agency",
     agencies,
     default=agencies
 )
 
 analysis_df = master_df[
-    master_df[ORG_COL]
+    master_df[AGENCY_COL]
     .isin(selected_agencies)
 ]
 
@@ -184,13 +228,21 @@ question_code = (
 )
 
 # ==========================================================
-# VALIDATION
+# QUESTION VALIDATION
 # ==========================================================
 
 if question_col not in analysis_df.columns:
 
     st.error(
         f"Column not found: {question_col}"
+    )
+
+    st.stop()
+
+if analysis_df.empty:
+
+    st.warning(
+        "No records found for the selected agency filter."
     )
 
     st.stop()
@@ -214,6 +266,18 @@ if question_code in MULTISELECT_QUESTIONS:
         .str.strip()
     )
 
+responses = responses[
+    responses.astype(str).str.len() > 0
+]
+
+if responses.empty:
+
+    st.warning(
+        "No valid responses were found for the selected question and agency filter."
+    )
+
+    st.stop()
+
 # ==========================================================
 # KPI SECTION
 # ==========================================================
@@ -227,7 +291,7 @@ c1.metric(
 
 c2.metric(
     "Participating Agencies",
-    analysis_df[ORG_COL].nunique()
+    analysis_df[AGENCY_COL].nunique()
 )
 
 c3.metric(
@@ -281,7 +345,8 @@ fig = px.bar(
 
 fig.update_layout(
     yaxis_title="Response",
-    xaxis_title="Number of Responses"
+    xaxis_title="Number of Responses",
+    height=650
 )
 
 fig.update_traces(
@@ -295,11 +360,11 @@ st.plotly_chart(
 )
 
 # ==========================================================
-# ORGANIZATION COMPARISON
+# AGENCY COMPARISON
 # ==========================================================
 
 st.markdown(
-    "## Organization Comparison"
+    "## Agency Comparison"
 )
 
 try:
@@ -308,7 +373,10 @@ try:
 
         heatmap_df = (
             analysis_df[
-                [ORG_COL, question_col]
+                [
+                    AGENCY_COL,
+                    question_col
+                ]
             ]
             .dropna()
             .copy()
@@ -327,6 +395,7 @@ try:
 
         heatmap_df[question_col] = (
             heatmap_df[question_col]
+            .astype(str)
             .str.strip()
         )
 
@@ -334,7 +403,10 @@ try:
 
         heatmap_df = (
             analysis_df[
-                [ORG_COL, question_col]
+                [
+                    AGENCY_COL,
+                    question_col
+                ]
             ]
             .dropna()
             .copy()
@@ -354,7 +426,10 @@ try:
     cross_df = (
         heatmap_df
         .groupby(
-            [ORG_COL, question_col]
+            [
+                AGENCY_COL,
+                question_col
+            ]
         )
         .size()
         .unstack(fill_value=0)
@@ -363,7 +438,16 @@ try:
     fig2 = px.imshow(
         cross_df,
         aspect="auto",
-        title="Response Heatmap by Organization"
+        title="Response Heatmap by Agency",
+        labels=dict(
+            x="Response",
+            y="Agency",
+            color="Count"
+        )
+    )
+
+    fig2.update_layout(
+        height=650
     )
 
     st.plotly_chart(
@@ -429,14 +513,13 @@ Response share:
 
 A total of **{len(responses)} responses**
 were analyzed across
-**{analysis_df[ORG_COL].nunique()} organizations**.
+**{analysis_df[AGENCY_COL].nunique()} agencies**.
 
 The findings provide insight into how
 road agencies collect, manage, store,
 govern and utilize pavement information.
 
-Differences across organizations may
-highlight opportunities for benchmarking,
-capacity building and improved data
-governance practices.
+Differences across agencies may highlight
+opportunities for benchmarking, capacity building
+and improved data governance practices.
 """)
