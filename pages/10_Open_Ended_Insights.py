@@ -17,7 +17,7 @@ from utils.theme_coder import build_theme_dataset
 
 st.set_page_config(
     page_title="Open Ended Insights",
-    page_icon="💡",
+    page_icon="📊",
     layout="wide"
 )
 
