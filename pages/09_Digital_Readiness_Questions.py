@@ -1,7 +1,6 @@
-
 # ==========================================================
 # DIGITAL READINESS QUESTION ANALYTICS
-# Sprint 3B.5B - Final Production Version
+# Sprint 3B.5B - Framework Aligned Production Version
 # ==========================================================
 
 import streamlit as st
@@ -26,10 +25,10 @@ st.set_page_config(
 
 @st.cache_data
 def load_data():
-
     return pd.read_csv(
         "data/clean_master.csv"
     )
+
 
 master_df = load_data()
 
@@ -38,12 +37,38 @@ master_df = clean_master_dataset(
 )
 
 # ==========================================================
-# CORE COLUMN DEFINITIONS
+# COLUMN DEFINITIONS
 # ==========================================================
 
-ORG_COL = (
-    "Q1. What agency do you work for?"
-)
+AGENCY_COL = "Q1. What agency do you work for?"
+
+# ==========================================================
+# VALIDATION
+# ==========================================================
+
+if AGENCY_COL not in master_df.columns:
+
+    st.error(
+        f"Missing required column: {AGENCY_COL}"
+    )
+
+    st.stop()
+
+# ==========================================================
+# HELPER FUNCTION
+# ==========================================================
+
+def get_question_column(question_code):
+
+    matches = [
+        col for col in master_df.columns
+        if col.startswith(question_code)
+    ]
+
+    if matches:
+        return matches[0]
+
+    return None
 
 # ==========================================================
 # DIGITAL READINESS QUESTION MAP
@@ -52,25 +77,31 @@ ORG_COL = (
 QUESTION_MAP = {
 
     "Q23 - Road Infrastructure Databases":
-
-        [c for c in master_df.columns
-         if c.startswith("Q23")][0],
+        get_question_column("Q23"),
 
     "Q24 - Artificial Intelligence (AI)":
-
-        [c for c in master_df.columns
-         if c.startswith("Q24")][0],
+        get_question_column("Q24"),
 
     "Q25 - Data Analytics":
-
-        [c for c in master_df.columns
-         if c.startswith("Q25")][0],
+        get_question_column("Q25"),
 
     "Q26 - Multi-Criteria Decision Analysis (MCDA)":
-
-        [c for c in master_df.columns
-         if c.startswith("Q26")][0]
+        get_question_column("Q26")
 }
+
+QUESTION_MAP = {
+    key: value
+    for key, value in QUESTION_MAP.items()
+    if value is not None
+}
+
+if not QUESTION_MAP:
+
+    st.error(
+        "No Digital Readiness question columns were found in the dataset."
+    )
+
+    st.stop()
 
 # ==========================================================
 # QUESTION DESCRIPTIONS
@@ -80,30 +111,28 @@ QUESTION_DESCRIPTIONS = {
 
     "Q23 - Road Infrastructure Databases":
         """
-        Assesses familiarity with road infrastructure
-        databases and their application in maintenance
-        planning and decision-making.
+        Assesses familiarity with road infrastructure databases
+        and their application in maintenance planning and
+        decision-making.
         """,
 
     "Q24 - Artificial Intelligence (AI)":
         """
-        Assesses familiarity with Artificial Intelligence
-        techniques and their potential application in road
-        asset management and pavement performance prediction.
+        Assesses familiarity with Artificial Intelligence techniques
+        and their potential application in road asset management and
+        pavement performance prediction.
         """,
 
     "Q25 - Data Analytics":
         """
-        Assesses familiarity with data analytics tools,
-        techniques and data-driven decision making for
-        infrastructure management.
+        Assesses familiarity with data analytics tools, techniques
+        and data-driven decision-making for infrastructure management.
         """,
 
     "Q26 - Multi-Criteria Decision Analysis (MCDA)":
         """
-        Assesses familiarity with MCDA approaches used
-        to support prioritisation and investment decisions
-        in road asset management.
+        Assesses familiarity with MCDA approaches used to support
+        prioritisation and investment decisions in road asset management.
         """
 }
 
@@ -112,15 +141,13 @@ QUESTION_DESCRIPTIONS = {
 # ==========================================================
 
 st.title(
-    "💻 Digital Readiness Questions"
+    "Digital Readiness Questions"
 )
 
 st.markdown("""
-This page evaluates organizational readiness for
-digital transformation by examining familiarity
-with databases, Artificial Intelligence (AI),
-data analytics and Multi-Criteria Decision
-Analysis (MCDA) technologies.
+This page evaluates agency readiness for digital transformation by examining
+familiarity with road infrastructure databases, Artificial Intelligence (AI),
+data analytics and Multi-Criteria Decision Analysis (MCDA) technologies.
 """)
 
 # ==========================================================
@@ -128,31 +155,33 @@ Analysis (MCDA) technologies.
 # ==========================================================
 
 agencies = sorted(
-    master_df[
-        ORG_COL
-    ]
+    master_df[AGENCY_COL]
     .dropna()
     .unique()
 )
 
 selected_agencies = st.multiselect(
-    "Filter Organization",
+    "Filter Agency",
     agencies,
     default=agencies
 )
 
 analysis_df = master_df[
-    master_df[
-        ORG_COL
-    ]
+    master_df[AGENCY_COL]
     .isin(selected_agencies)
 ]
 
+if analysis_df.empty:
+
+    st.warning(
+        "No records found for the selected agency filter."
+    )
+
+    st.stop()
+
 selected_question = st.selectbox(
     "Select Digital Readiness Question",
-    list(
-        QUESTION_MAP.keys()
-    )
+    list(QUESTION_MAP.keys())
 )
 
 st.info(
@@ -167,7 +196,7 @@ question_col = QUESTION_MAP[
 ]
 
 # ==========================================================
-# VALIDATION
+# QUESTION VALIDATION
 # ==========================================================
 
 if question_col not in analysis_df.columns:
@@ -183,11 +212,23 @@ if question_col not in analysis_df.columns:
 # ==========================================================
 
 responses = (
-    analysis_df[
-        question_col
-    ]
+    analysis_df[question_col]
     .dropna()
+    .astype(str)
+    .str.strip()
 )
+
+responses = responses[
+    responses.astype(str).str.len() > 0
+]
+
+if responses.empty:
+
+    st.warning(
+        "No valid responses were found for the selected question and agency filter."
+    )
+
+    st.stop()
 
 # ==========================================================
 # KPI SECTION
@@ -202,9 +243,7 @@ c1.metric(
 
 c2.metric(
     "Participating Agencies",
-    analysis_df[
-        ORG_COL
-    ].nunique()
+    analysis_df[AGENCY_COL].nunique()
 )
 
 c3.metric(
@@ -244,9 +283,7 @@ freq_df = (
         "Count",
         ascending=False
     )
-    .reset_index(
-        drop=True
-    )
+    .reset_index(drop=True)
 )
 
 fig = px.bar(
@@ -260,7 +297,8 @@ fig = px.bar(
 
 fig.update_layout(
     yaxis_title="Response",
-    xaxis_title="Number of Responses"
+    xaxis_title="Number of Responses",
+    height=550
 )
 
 fig.update_traces(
@@ -274,11 +312,11 @@ st.plotly_chart(
 )
 
 # ==========================================================
-# ORGANIZATION COMPARISON
+# AGENCY COMPARISON
 # ==========================================================
 
 st.markdown(
-    "## Organization Comparison"
+    "## Agency Comparison"
 )
 
 try:
@@ -286,12 +324,18 @@ try:
     heatmap_df = (
         analysis_df[
             [
-                ORG_COL,
+                AGENCY_COL,
                 question_col
             ]
         ]
         .dropna()
         .copy()
+    )
+
+    heatmap_df[question_col] = (
+        heatmap_df[question_col]
+        .astype(str)
+        .str.strip()
     )
 
     top_responses = (
@@ -301,32 +345,35 @@ try:
     )
 
     heatmap_df = heatmap_df[
-        heatmap_df[
-            question_col
-        ]
-        .isin(
-            top_responses
-        )
+        heatmap_df[question_col]
+        .isin(top_responses)
     ]
 
     cross_df = (
         heatmap_df
         .groupby(
             [
-                ORG_COL,
+                AGENCY_COL,
                 question_col
             ]
         )
         .size()
-        .unstack(
-            fill_value=0
-        )
+        .unstack(fill_value=0)
     )
 
     fig2 = px.imshow(
         cross_df,
         aspect="auto",
-        title="Response Heatmap by Organization"
+        title="Response Heatmap by Agency",
+        labels=dict(
+            x="Response",
+            y="Agency",
+            color="Count"
+        )
+    )
+
+    fig2.update_layout(
+        height=650
     )
 
     st.plotly_chart(
@@ -349,9 +396,16 @@ st.markdown(
 )
 
 st.dataframe(
-    freq_df,
+    freq_df[
+        [
+            "Response",
+            "Count",
+            "Percentage"
+        ]
+    ],
     use_container_width=True
 )
+
 # ==========================================================
 # EXECUTIVE INTERPRETATION
 # ==========================================================
@@ -385,22 +439,17 @@ Response share:
 
 A total of **{len(responses)} responses**
 were analyzed across
-**{analysis_df[ORG_COL].nunique()} organizations**.
+**{analysis_df[AGENCY_COL].nunique()} agencies**.
 
-The findings provide insight into the
-digital readiness of road agencies and
-their familiarity with emerging digital
-technologies and analytical approaches.
+The findings provide insight into the digital readiness of road agencies
+and their familiarity with emerging digital technologies, analytical tools
+and decision-support approaches.
 
-The results help identify opportunities
-for digital transformation, capacity
-development and adoption of advanced
-decision-support technologies across
-the road sector.
+The results help identify opportunities for digital transformation,
+capacity development and adoption of advanced decision-support technologies
+across the road sector.
 
-Differences across organizations may
-highlight varying levels of readiness
-for data-driven asset management and
-digital innovation.
+Differences across agencies may highlight varying levels of readiness for
+data-driven asset management, digital innovation, analytics adoption and
+technology-enabled infrastructure planning.
 """)
-
