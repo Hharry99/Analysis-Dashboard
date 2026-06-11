@@ -1,6 +1,6 @@
 # ==========================================================
 # KEY FINDINGS AND RECOMMENDATIONS
-# Sprint 3D.2 - Production Version
+# Sprint 3D.2 - Framework Aligned Production Version
 # ==========================================================
 
 import streamlit as st
@@ -23,7 +23,9 @@ st.set_page_config(
 
 @st.cache_data
 def load_benchmark_data():
-    return pd.read_csv("data/benchmark_dataset.csv")
+    return pd.read_csv(
+        "data/benchmark_dataset.csv"
+    )
 
 
 benchmark_df = load_benchmark_data()
@@ -32,7 +34,12 @@ benchmark_df = load_benchmark_data()
 # REQUIRED COLUMNS
 # ==========================================================
 
-INDEX_COLS = ["DMI", "FMI", "RRI", "DRI"]
+INDEX_COLS = [
+    "DMI",
+    "FMI",
+    "RRI",
+    "DRI"
+]
 
 INDEX_LABELS = {
     "DMI": "Data Maturity",
@@ -44,7 +51,6 @@ INDEX_LABELS = {
 required_cols = [
     "Agency",
     "Overall_Score",
-    "Overall_Rank",
     "DMI",
     "FMI",
     "RRI",
@@ -57,21 +63,29 @@ missing_cols = [
 ]
 
 if missing_cols:
-    st.error(f"Missing required columns: {missing_cols}")
+
+    st.error(
+        f"Missing required columns: {missing_cols}"
+    )
+
     st.stop()
 
 # ==========================================================
-# BASIC CLEANING FOR DISPLAY
+# CLEAN AND STANDARDIZE BENCHMARK DATA
 # ==========================================================
 
 benchmark_df = benchmark_df.copy()
 
-benchmark_df["Overall_Score"] = pd.to_numeric(
-    benchmark_df["Overall_Score"],
-    errors="coerce"
-)
+numeric_cols = [
+    "Overall_Score",
+    "DMI",
+    "FMI",
+    "RRI",
+    "DRI"
+]
 
-for col in INDEX_COLS:
+for col in numeric_cols:
+
     benchmark_df[col] = pd.to_numeric(
         benchmark_df[col],
         errors="coerce"
@@ -84,11 +98,42 @@ benchmark_df = benchmark_df.dropna(
     ]
 )
 
+# ----------------------------------------------------------
+# IMPORTANT:
+# Display-level de-duplication only.
+# This ensures the page uses one benchmark row per agency.
+# The final benchmark dataset will still be regenerated
+# after survey closure and final validation.
+# ----------------------------------------------------------
+
+benchmark_df = (
+    benchmark_df
+    .sort_values(
+        "Overall_Score",
+        ascending=False
+    )
+    .drop_duplicates(
+        subset=[
+            "Agency"
+        ],
+        keep="first"
+    )
+    .reset_index(drop=True)
+)
+
+benchmark_df["Display_Rank"] = (
+    benchmark_df.index + 1
+)
+
+agency_count = benchmark_df["Agency"].nunique()
+
 # ==========================================================
 # PAGE HEADER
 # ==========================================================
 
-st.title("✅ Key Findings & Recommendations")
+st.title(
+    "✅ Key Findings & Recommendations"
+)
 
 st.markdown("""
 This page consolidates the major findings from the maturity assessment,
@@ -98,16 +143,33 @@ strategic roadmap.
 It is designed as an executive summary for decision-makers.
 """)
 
+st.caption(
+    """
+    Note: Current findings use the available benchmark dataset.
+    Final findings, rankings and recommendations will be refreshed
+    after survey closure and final dataset validation.
+    """
+)
+
 # ==========================================================
 # EXECUTIVE KPI SUMMARY
 # ==========================================================
 
-st.markdown("## Executive Summary KPIs")
+st.markdown(
+    "## Executive Summary KPIs"
+)
 
-organizations = benchmark_df["Agency"].nunique()
-avg_score = benchmark_df["Overall_Score"].mean()
-highest_score = benchmark_df["Overall_Score"].max()
-lowest_score = benchmark_df["Overall_Score"].min()
+avg_score = benchmark_df[
+    "Overall_Score"
+].mean()
+
+highest_score = benchmark_df[
+    "Overall_Score"
+].max()
+
+lowest_score = benchmark_df[
+    "Overall_Score"
+].min()
 
 top_agency = benchmark_df.loc[
     benchmark_df["Overall_Score"].idxmax(),
@@ -121,20 +183,52 @@ lowest_agency = benchmark_df.loc[
 
 c1, c2, c3, c4 = st.columns(4)
 
-c1.metric("Organizations Assessed", organizations)
-c2.metric("Average Overall Score", round(avg_score, 2))
-c3.metric("Highest Score", round(highest_score, 2))
-c4.metric("Lowest Score", round(lowest_score, 2))
+c1.metric(
+    "Agencies Assessed",
+    agency_count
+)
+
+c2.metric(
+    "Average Overall Score",
+    round(
+        avg_score,
+        2
+    )
+)
+
+c3.metric(
+    "Highest Score",
+    round(
+        highest_score,
+        2
+    )
+)
+
+c4.metric(
+    "Lowest Score",
+    round(
+        lowest_score,
+        2
+    )
+)
 
 # ==========================================================
 # MATURITY DIMENSION SUMMARY
 # ==========================================================
 
-st.markdown("## Maturity Dimension Summary")
+st.markdown(
+    "## Maturity Dimension Summary"
+)
 
 dimension_summary = pd.DataFrame({
-    "Dimension": [INDEX_LABELS[col] for col in INDEX_COLS],
+
+    "Dimension": [
+        INDEX_LABELS[col]
+        for col in INDEX_COLS
+    ],
+
     "Code": INDEX_COLS,
+
     "Average Score": [
         benchmark_df[col].mean()
         for col in INDEX_COLS
@@ -177,24 +271,50 @@ st.plotly_chart(
 # AUTOMATED FINDINGS
 # ==========================================================
 
-st.markdown("## Key Findings")
+st.markdown(
+    "## Key Findings"
+)
 
-best_dimension_code = benchmark_df[INDEX_COLS].mean().idxmax()
-weakest_dimension_code = benchmark_df[INDEX_COLS].mean().idxmin()
+best_dimension_code = (
+    benchmark_df[
+        INDEX_COLS
+    ]
+    .mean()
+    .idxmax()
+)
 
-best_dimension = INDEX_LABELS[best_dimension_code]
-weakest_dimension = INDEX_LABELS[weakest_dimension_code]
+weakest_dimension_code = (
+    benchmark_df[
+        INDEX_COLS
+    ]
+    .mean()
+    .idxmin()
+)
 
-score_range = highest_score - lowest_score
+best_dimension = INDEX_LABELS[
+    best_dimension_code
+]
+
+weakest_dimension = INDEX_LABELS[
+    weakest_dimension_code
+]
+
+score_range = (
+    highest_score
+    -
+    lowest_score
+)
 
 findings = [
+
     {
         "Finding": "Overall maturity levels are moderate",
         "Evidence": (
             f"The average overall maturity score across participating "
-            f"organizations is {avg_score:.2f}."
+            f"agencies is {avg_score:.2f}."
         )
     },
+
     {
         "Finding": f"{top_agency} is the current benchmark leader",
         "Evidence": (
@@ -202,6 +322,7 @@ findings = [
             f"of {highest_score:.2f}."
         )
     },
+
     {
         "Finding": f"{weakest_dimension} is the main system-wide gap",
         "Evidence": (
@@ -209,6 +330,7 @@ findings = [
             f"among the four maturity dimensions."
         )
     },
+
     {
         "Finding": f"{best_dimension} is the strongest maturity dimension",
         "Evidence": (
@@ -216,6 +338,7 @@ findings = [
             f"across agencies."
         )
     },
+
     {
         "Finding": "Agency performance gaps remain visible",
         "Evidence": (
@@ -225,7 +348,11 @@ findings = [
     }
 ]
 
-for i, item in enumerate(findings, start=1):
+for i, item in enumerate(
+    findings,
+    start=1
+):
+
     st.info(f"""
 ### Finding {i}: {item["Finding"]}
 
@@ -236,9 +363,12 @@ for i, item in enumerate(findings, start=1):
 # KEY RISKS
 # ==========================================================
 
-st.markdown("## Key Risks")
+st.markdown(
+    "## Key Risks"
+)
 
 risk_df = pd.DataFrame({
+
     "Risk Area": [
         "Weak data maturity",
         "Limited forecasting capability",
@@ -246,6 +376,7 @@ risk_df = pd.DataFrame({
         "Institutional capacity constraints",
         "Funding and resource limitations"
     ],
+
     "Potential Impact": [
         "Poor data quality may weaken planning, reporting and prioritisation.",
         "Limited forecasting may reduce long-term maintenance planning effectiveness.",
@@ -253,12 +384,21 @@ risk_df = pd.DataFrame({
         "Limited technical capacity may constrain implementation of advanced tools.",
         "Funding gaps may delay data collection, modelling and system upgrades."
     ],
+
     "Risk Level": [
         "High",
         "High",
         "Medium",
         "Medium",
         "Medium"
+    ],
+
+    "Recommended Mitigation": [
+        "Strengthen data governance, data standards and condition data quality checks.",
+        "Develop deterioration modelling capability and improve historical datasets.",
+        "Invest in integrated digital asset management systems and analytical platforms.",
+        "Expand staff training, technical support and institutional learning.",
+        "Improve evidence-based funding justification and lifecycle investment planning."
     ]
 })
 
@@ -271,9 +411,12 @@ st.dataframe(
 # STRATEGIC RECOMMENDATIONS
 # ==========================================================
 
-st.markdown("## Strategic Recommendations")
+st.markdown(
+    "## Strategic Recommendations"
+)
 
 recommendations = [
+
     {
         "Recommendation": "Strengthen data governance and quality assurance",
         "Rationale": (
@@ -281,6 +424,7 @@ recommendations = [
             "maintenance planning and performance monitoring."
         )
     },
+
     {
         "Recommendation": "Develop forecasting and deterioration modelling capability",
         "Rationale": (
@@ -288,6 +432,7 @@ recommendations = [
             "budget justification and lifecycle decision-making."
         )
     },
+
     {
         "Recommendation": "Invest in integrated digital asset management systems",
         "Rationale": (
@@ -295,6 +440,7 @@ recommendations = [
             "real-time use of road asset information."
         )
     },
+
     {
         "Recommendation": "Enhance capacity building and technical training",
         "Rationale": (
@@ -302,6 +448,7 @@ recommendations = [
             "systems into effective decisions."
         )
     },
+
     {
         "Recommendation": "Improve institutional coordination and information sharing",
         "Rationale": (
@@ -311,7 +458,11 @@ recommendations = [
     }
 ]
 
-for i, rec in enumerate(recommendations, start=1):
+for i, rec in enumerate(
+    recommendations,
+    start=1
+):
+
     st.success(f"""
 ### Recommendation {i}: {rec["Recommendation"]}
 
@@ -322,14 +473,24 @@ for i, rec in enumerate(recommendations, start=1):
 # PRIORITY INVESTMENT AREAS
 # ==========================================================
 
-st.markdown("## Priority Investment Areas")
+st.markdown(
+    "## Priority Investment Areas"
+)
 
-priority_df = dimension_summary.sort_values(
-    "Average Score",
-    ascending=True
-).reset_index(drop=True)
+priority_df = (
+    dimension_summary
+    .sort_values(
+        "Average Score",
+        ascending=True
+    )
+    .reset_index(drop=True)
+)
 
-priority_df["Priority Rank"] = priority_df.index + 1
+priority_df["Priority Rank"] = (
+    priority_df.index
+    +
+    1
+)
 
 priority_df = priority_df[
     [
@@ -375,7 +536,9 @@ st.plotly_chart(
 # EXPECTED BENEFITS
 # ==========================================================
 
-st.markdown("## Expected Benefits")
+st.markdown(
+    "## Expected Benefits"
+)
 
 benefits = [
     "Improved evidence-based road maintenance planning",
@@ -403,7 +566,9 @@ Successful implementation of the recommendations is expected to support:
 # FINAL EXECUTIVE SUMMARY
 # ==========================================================
 
-st.markdown("## Final Executive Summary")
+st.markdown(
+    "## Final Executive Summary"
+)
 
 st.info(f"""
 The assessment shows that participating agencies have established
@@ -412,7 +577,8 @@ improvement gaps remain.
 
 The highest benchmark score was recorded by **{top_agency}**,
 while **{lowest_agency}** recorded the lowest overall score.
-The system-wide average maturity score is **{avg_score:.2f}**.
+The system-wide average maturity score is **{avg_score:.2f}**
+across **{agency_count} participating agencies**.
 
 The strongest maturity area is **{best_dimension}**, while the
 main improvement priority is **{weakest_dimension}**.
