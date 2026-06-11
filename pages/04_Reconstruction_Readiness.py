@@ -126,7 +126,7 @@ analysis_df = analysis_df.dropna(
 # ==========================================================
 
 st.title(
-    "🛣 Reconstruction Readiness Analysis"
+    "Reconstruction Readiness Analysis"
 )
 
 st.markdown("""
