@@ -1,19 +1,14 @@
 # ==========================================================
 # OPEN ENDED INSIGHTS
-# Sprint 3C.3 - Final Production Version
+# Sprint 3C.3 - Final Production Version (V2)
 # ==========================================================
 
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-from utils.data_cleaning import (
-    clean_master_dataset
-)
-
-from utils.theme_coder import (
-    build_theme_dataset
-)
+from utils.data_cleaning import clean_master_dataset
+from utils.theme_coder import build_theme_dataset
 
 # ==========================================================
 # PAGE CONFIGURATION
@@ -31,67 +26,53 @@ st.set_page_config(
 
 @st.cache_data
 def load_data():
-
-    return pd.read_csv(
-        "data/clean_master.csv"
-    )
+    return pd.read_csv("data/clean_master.csv")
 
 master_df = load_data()
-
-master_df = clean_master_dataset(
-    master_df
-)
+master_df = clean_master_dataset(master_df)
 
 # ==========================================================
 # COLUMN DEFINITIONS
 # ==========================================================
 
-ORG_COL = (
-    "Q1. What agency do you work for?"
-)
+ORG_COL = "Q1. What agency do you work for?"
 
 Q27_COL = (
-    "Q27. What practical improvements in data systems, institutional approaches, or technical capacity would most strengthen pavement performance management in Kenya?"
+    "Q27. What practical improvements in data systems, institutional "
+    "approaches, or technical capacity would most strengthen pavement "
+    "performance management in Kenya?"
 )
 
 Q28_COL = (
-    "Q28. Do you have any additional comments or recommendations regarding forecasting, modelling, or use of condition data in road asset management and planning?"
+    "Q28. Do you have any additional comments or recommendations regarding "
+    "forecasting, modelling, or use of condition data in road asset "
+    "management and planning?"
 )
 
-TEXT_COLUMNS = [
-    Q27_COL,
-    Q28_COL
-]
+TEXT_COLUMNS = [Q27_COL, Q28_COL]
 
 # ==========================================================
 # PAGE HEADER
 # ==========================================================
 
-st.title(
-    "💡 Open Ended Insights"
-)
+st.title("💡 Open Ended Insights")
 
-st.markdown("""
-This page presents qualitative insights extracted
-from open-ended survey responses.
+st.markdown(
+    """
+This page presents qualitative insights extracted from open-ended survey
+responses.
 
-Responses were automatically coded into themes
-covering institutional capacity, data quality,
-forecasting, digital transformation and asset
+Responses were automatically coded into themes covering institutional
+capacity, data quality, forecasting, digital transformation and asset
 management practices.
-""")
+"""
+)
 
 # ==========================================================
 # FILTERS
 # ==========================================================
 
-agencies = sorted(
-    master_df[
-        ORG_COL
-    ]
-    .dropna()
-    .unique()
-)
+agencies = sorted(master_df[ORG_COL].dropna().unique())
 
 selected_agencies = st.multiselect(
     "Filter Organization",
@@ -100,10 +81,7 @@ selected_agencies = st.multiselect(
 )
 
 analysis_df = master_df[
-    master_df[
-        ORG_COL
-    ]
-    .isin(selected_agencies)
+    master_df[ORG_COL].isin(selected_agencies)
 ]
 
 # ==========================================================
@@ -121,95 +99,41 @@ theme_df = build_theme_dataset(
 # ==========================================================
 
 if theme_df.empty:
-
-    st.warning(
-        """
-        No themes were identified
-        from the selected responses.
-        """
-    )
-
+    st.warning("No themes were identified from the selected responses.")
     st.stop()
 
 # ==========================================================
 # KPI SECTION
 # ==========================================================
 
-total_q27 = (
-    analysis_df[
-        Q27_COL
-    ]
-    .dropna()
-    .shape[0]
-)
-
-total_q28 = (
-    analysis_df[
-        Q28_COL
-    ]
-    .dropna()
-    .shape[0]
-)
-
-total_themes = (
-    theme_df[
-        "Theme"
-    ]
-    .nunique()
-)
-
-coded_records = len(
-    theme_df
-)
+total_q27 = analysis_df[Q27_COL].dropna().shape[0]
+total_q28 = analysis_df[Q28_COL].dropna().shape[0]
+total_themes = theme_df["Theme"].nunique()
+coded_records = len(theme_df)
 
 c1, c2, c3, c4 = st.columns(4)
 
-c1.metric(
-    "Q27 Responses",
-    total_q27
-)
-
-c2.metric(
-    "Q28 Responses",
-    total_q28
-)
-
-c3.metric(
-    "Themes Identified",
-    total_themes
-)
-
-c4.metric(
-    "Theme Mentions",
-    coded_records
-)
+c1.metric("Q27 Responses", total_q27)
+c2.metric("Q28 Responses", total_q28)
+c3.metric("Themes Identified", total_themes)
+c4.metric("Theme Mentions", coded_records)
 
 # ==========================================================
-# THEME FREQUENCY
+# THEME FREQUENCY ANALYSIS
 # ==========================================================
 
-st.markdown(
-    "## Theme Frequency Analysis"
-)
+st.markdown("## Theme Frequency Analysis")
 
 theme_freq = (
-    theme_df[
-        "Theme"
-    ]
+    theme_df["Theme"]
     .value_counts()
     .reset_index()
 )
 
-theme_freq.columns = [
-    "Theme",
-    "Count"
-]
+theme_freq.columns = ["Theme", "Count"]
 
 theme_freq["Percentage"] = (
-    theme_freq["Count"]
-    /
-    theme_freq["Count"].sum()
-    * 100
+    theme_freq["Count"] / theme_freq["Count"].sum() * 100
 ).round(1)
 
 fig_theme = px.bar(
@@ -237,27 +161,18 @@ st.plotly_chart(
 )
 
 # ==========================================================
-# THEME BY AGENCY
+# THEME DISTRIBUTION BY ORGANIZATION
 # ==========================================================
 
-st.markdown(
-    "## Theme Distribution by Organization"
-)
+st.markdown("## Theme Distribution by Organization")
 
 try:
 
     cross_df = (
         theme_df
-        .groupby(
-            [
-                "Agency",
-                "Theme"
-            ]
-        )
+        .groupby(["Agency", "Theme"])
         .size()
-        .unstack(
-            fill_value=0
-        )
+        .unstack(fill_value=0)
     )
 
     fig_heatmap = px.imshow(
@@ -265,6 +180,8 @@ try:
         aspect="auto",
         title="Theme Frequency by Organization"
     )
+
+    fig_heatmap.update_layout(height=700)
 
     st.plotly_chart(
         fig_heatmap,
@@ -278,15 +195,19 @@ except Exception as e:
     )
 
 # ==========================================================
-# THEME SUMMARY TABLE
+# THEME SUMMARY
 # ==========================================================
 
-st.markdown(
-    "## Theme Summary"
-)
+st.markdown("## Theme Summary")
 
 st.dataframe(
-    theme_freq,
+    theme_freq[
+        [
+            "Theme",
+            "Count",
+            "Percentage"
+        ]
+    ],
     use_container_width=True
 )
 
@@ -294,67 +215,57 @@ st.dataframe(
 # REPRESENTATIVE QUOTATIONS
 # ==========================================================
 
-st.markdown(
-    "## Representative Quotations"
-)
+st.markdown("## Representative Quotations")
 
 selected_theme = st.selectbox(
     "Select Theme",
-    sorted(
-        theme_df[
-            "Theme"
-        ]
-        .unique()
-    )
+    sorted(theme_df["Theme"].unique())
 )
 
 theme_quotes = (
-    theme_df[
-        theme_df[
-            "Theme"
-        ]
-        == selected_theme
-    ]
-    .drop_duplicates(
-        subset=[
-            "Response"
-        ]
-    )
+    theme_df[theme_df["Theme"] == selected_theme]
+    .drop_duplicates(subset=["Response"])
 )
 
-max_quotes = min(
-    5,
-    len(theme_quotes)
-)
+max_quotes = min(5, len(theme_quotes))
 
-for _, row in (
-    theme_quotes
-    .head(max_quotes)
-    .iterrows()
+st.markdown("### Selected Quotations")
+
+for i, (_, row) in enumerate(
+    theme_quotes.head(max_quotes).iterrows(),
+    start=1
 ):
 
-    st.markdown(
-        f"""
-        > {row['Response']}
-        """
+    quote = (
+        str(row["Response"])
+        .replace("\n", " ")
+        .strip()
+    )
+
+    st.info(
+        f"Quote {i}\n\n{quote}"
     )
 
 # ==========================================================
-# THEME DETAILS TABLE
+# THEME OCCURRENCE SUMMARY
 # ==========================================================
 
-st.markdown(
-    "## Theme Coding Details"
+st.markdown("## Theme Occurrence Summary")
+
+theme_agency = (
+    theme_df
+    .groupby(
+        [
+            "Theme",
+            "Agency"
+        ]
+    )
+    .size()
+    .reset_index(name="Count")
 )
 
 st.dataframe(
-    theme_df[
-        [
-            "Agency",
-            "Question",
-            "Theme"
-        ]
-    ],
+    theme_agency,
     use_container_width=True
 )
 
@@ -362,45 +273,41 @@ st.dataframe(
 # EXECUTIVE INTERPRETATION
 # ==========================================================
 
-top_theme = (
-    theme_freq
-    .iloc[0]["Theme"]
-)
+top_theme = theme_freq.iloc[0]["Theme"]
+top_percentage = theme_freq.iloc[0]["Percentage"]
 
-top_percentage = (
-    theme_freq
-    .iloc[0]["Percentage"]
-)
-
-st.info(f"""
+st.info(
+    f"""
 ### Executive Interpretation
 
 A total of **{total_q27 + total_q28}**
 open-ended responses were analysed.
 
 The thematic coding process identified
-**{total_themes} major themes** and
-generated **{coded_records} coded theme
-mentions** across participating agencies.
+**{total_themes} major themes** and generated
+**{coded_records} coded theme mentions**.
+
+A theme mention represents one occurrence
+of a theme within a response. Individual
+responses may contribute to multiple themes.
 
 The most frequently mentioned theme was:
 
 **{top_theme}**
 
 representing approximately
-**{top_percentage}%** of all coded
-theme references.
+**{top_percentage}%** of all coded theme
+references.
 
 The qualitative responses highlight
 stakeholder priorities relating to
-institutional strengthening, data
-quality improvement, forecasting
-capability, digital transformation
-and evidence-based road asset
-management.
+institutional strengthening, data quality,
+forecasting capability, digital transformation
+and evidence-based road asset management.
 
-These findings provide valuable
-context to the quantitative maturity
-indices and help explain the practical
-needs identified by respondents.
-""")
+These findings provide valuable context to
+the quantitative maturity indices and help
+explain the practical needs identified by
+respondents.
+"""
+)
