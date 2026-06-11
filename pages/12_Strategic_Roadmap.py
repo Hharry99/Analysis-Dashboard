@@ -130,7 +130,7 @@ agency_count = benchmark_df["Agency"].nunique()
 # ==========================================================
 
 st.title(
-    "🛣️ Strategic Roadmap"
+    "Strategic Roadmap"
 )
 
 st.markdown("""
