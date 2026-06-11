@@ -126,7 +126,7 @@ analysis_df = analysis_df.dropna(
 # ==========================================================
 
 st.title(
-    "📊 Data Maturity Analysis"
+    "Data Maturity Analysis"
 )
 
 st.markdown("""
