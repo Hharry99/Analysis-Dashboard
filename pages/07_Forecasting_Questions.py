@@ -1,6 +1,6 @@
 # ==========================================================
 # FORECASTING QUESTION ANALYTICS
-# Sprint 3B.5A - Final Production Version
+# Sprint 3B.5A - Framework Aligned Production Version
 # ==========================================================
 
 import streamlit as st
@@ -29,6 +29,7 @@ def load_data():
         "data/clean_master.csv"
     )
 
+
 master_df = load_data()
 master_df = clean_master_dataset(master_df)
 
@@ -36,7 +37,58 @@ master_df = clean_master_dataset(master_df)
 # COLUMN DEFINITIONS
 # ==========================================================
 
-ORG_COL = "Q1. What agency do you work for?"
+AGENCY_COL = "Q1. What agency do you work for?"
+
+# ==========================================================
+# VALIDATION
+# ==========================================================
+
+if AGENCY_COL not in master_df.columns:
+
+    st.error(
+        f"Missing required column: {AGENCY_COL}"
+    )
+
+    st.stop()
+
+# ==========================================================
+# HELPER FUNCTIONS
+# ==========================================================
+
+def get_question_column_by_prefix(question_code):
+
+    matches = [
+        col for col in master_df.columns
+        if col.startswith(question_code)
+    ]
+
+    if matches:
+        return matches[0]
+
+    return None
+
+
+def get_question_column_by_text(search_text):
+
+    matches = [
+        col for col in master_df.columns
+        if search_text.lower() in col.lower()
+    ]
+
+    if matches:
+        return matches[0]
+
+    return None
+
+
+def normalize_other_response(value):
+
+    value_text = str(value).strip()
+
+    if value_text.lower().startswith("other"):
+        return "Other Forecasting Method"
+
+    return value_text
 
 # ==========================================================
 # QUESTION MAP
@@ -45,37 +97,43 @@ ORG_COL = "Q1. What agency do you work for?"
 QUESTION_MAP = {
 
     "Q16 - Forecasting Method":
-        [c for c in master_df.columns
-         if c.startswith("Q16")][0],
+        get_question_column_by_prefix("Q16"),
 
     "Q17 - Forecast Confidence":
-        [c for c in master_df.columns
-         if c.startswith("Q17")][0],
+        get_question_column_by_prefix("Q17"),
 
     "Q18 - Forecasting Barriers":
-        [c for c in master_df.columns
-         if c.startswith("Q18")][0],
+        get_question_column_by_prefix("Q18"),
 
     "Q19a - Multi-Year Budgeting":
-        [c for c in master_df.columns
-         if "Multi-year budgeting" in c][0],
+        get_question_column_by_text("Multi-year budgeting"),
 
     "Q19b - Treatment Timing Decisions":
-        [c for c in master_df.columns
-         if "Treatment timing decisions" in c][0],
+        get_question_column_by_text("Treatment timing decisions"),
 
     "Q19c - Network-Level Optimisation":
-        [c for c in master_df.columns
-         if "Network-level optimisation" in c][0],
+        get_question_column_by_text("Network-level optimisation"),
 
     "Q19d - Risk-Based Prioritisation":
-        [c for c in master_df.columns
-         if "Risk-based prioritisation" in c][0],
+        get_question_column_by_text("Risk-based prioritisation"),
 
     "Q19e - Funding Justification":
-        [c for c in master_df.columns
-         if "Justification of funding requests" in c][0]
+        get_question_column_by_text("Justification of funding requests")
 }
+
+QUESTION_MAP = {
+    key: value
+    for key, value in QUESTION_MAP.items()
+    if value is not None
+}
+
+if not QUESTION_MAP:
+
+    st.error(
+        "No Forecasting question columns were found in the dataset."
+    )
+
+    st.stop()
 
 # ==========================================================
 # QUESTION DESCRIPTIONS
@@ -109,15 +167,24 @@ QUESTION_DESCRIPTIONS = {
 }
 
 # ==========================================================
+# MULTI-SELECT QUESTIONS
+# ==========================================================
+
+MULTISELECT_QUESTIONS = [
+    "Q18"
+]
+
+# ==========================================================
 # PAGE HEADER
 # ==========================================================
 
-st.title("🔮 Forecasting Question Analytics")
+st.title(
+    "Forecasting Question Analytics"
+)
 
 st.markdown("""
-This page explores forecasting practices,
-confidence levels, barriers and decision-support
-applications that contribute to Forecasting Maturity.
+This page explores forecasting practices, confidence levels, barriers
+and decision-support applications that contribute to Forecasting Maturity.
 """)
 
 # ==========================================================
@@ -125,21 +192,29 @@ applications that contribute to Forecasting Maturity.
 # ==========================================================
 
 agencies = sorted(
-    master_df[ORG_COL]
+    master_df[AGENCY_COL]
     .dropna()
     .unique()
 )
 
 selected_agencies = st.multiselect(
-    "Filter Organization",
+    "Filter Agency",
     agencies,
     default=agencies
 )
 
 analysis_df = master_df[
-    master_df[ORG_COL]
+    master_df[AGENCY_COL]
     .isin(selected_agencies)
 ]
+
+if analysis_df.empty:
+
+    st.warning(
+        "No records found for the selected agency filter."
+    )
+
+    st.stop()
 
 selected_question = st.selectbox(
     "Select Forecasting Question",
@@ -157,8 +232,13 @@ question_col = QUESTION_MAP[
     selected_question
 ]
 
+question_code = (
+    selected_question
+    .split(" - ")[0]
+)
+
 # ==========================================================
-# VALIDATION
+# QUESTION VALIDATION
 # ==========================================================
 
 if question_col not in analysis_df.columns:
@@ -174,30 +254,49 @@ if question_col not in analysis_df.columns:
 # ==========================================================
 
 responses = (
-    analysis_df[
-        question_col
-    ]
+    analysis_df[question_col]
     .dropna()
 )
+
+if question_code in MULTISELECT_QUESTIONS:
+
+    responses = (
+        responses
+        .astype(str)
+        .str.split(";")
+        .explode()
+        .str.strip()
+    )
+
+else:
+
+    responses = (
+        responses
+        .astype(str)
+        .str.strip()
+    )
 
 # ==========================================================
 # NORMALIZE Q16 OTHER RESPONSES
 # ==========================================================
 
-if selected_question == \
-    "Q16 - Forecasting Method":
+if selected_question == "Q16 - Forecasting Method":
 
     responses = responses.apply(
-
-        lambda x:
-        "Other Forecasting Method"
-
-        if str(x).startswith(
-            "Other"
-        )
-
-        else x
+        normalize_other_response
     )
+
+responses = responses[
+    responses.astype(str).str.len() > 0
+]
+
+if responses.empty:
+
+    st.warning(
+        "No valid responses were found for the selected question and agency filter."
+    )
+
+    st.stop()
 
 # ==========================================================
 # KPI SECTION
@@ -212,8 +311,7 @@ c1.metric(
 
 c2.metric(
     "Participating Agencies",
-    analysis_df[ORG_COL]
-    .nunique()
+    analysis_df[AGENCY_COL].nunique()
 )
 
 c3.metric(
@@ -267,7 +365,8 @@ fig = px.bar(
 
 fig.update_layout(
     yaxis_title="Response",
-    xaxis_title="Number of Responses"
+    xaxis_title="Number of Responses",
+    height=600
 )
 
 fig.update_traces(
@@ -281,38 +380,58 @@ st.plotly_chart(
 )
 
 # ==========================================================
-# ORGANIZATION COMPARISON
+# AGENCY COMPARISON
 # ==========================================================
 
 st.markdown(
-    "## Organization Comparison"
+    "## Agency Comparison"
 )
 
 try:
 
     heatmap_df = (
         analysis_df[
-            [ORG_COL, question_col]
+            [
+                AGENCY_COL,
+                question_col
+            ]
         ]
         .dropna()
         .copy()
     )
 
-    if selected_question == \
-        "Q16 - Forecasting Method":
+    if question_code in MULTISELECT_QUESTIONS:
 
         heatmap_df[question_col] = (
             heatmap_df[question_col]
-            .apply(
-                lambda x:
-                "Other Forecasting Method"
+            .astype(str)
+            .str.split(";")
+        )
 
-                if str(x).startswith(
-                    "Other"
-                )
+        heatmap_df = (
+            heatmap_df
+            .explode(question_col)
+        )
 
-                else x
-            )
+        heatmap_df[question_col] = (
+            heatmap_df[question_col]
+            .astype(str)
+            .str.strip()
+        )
+
+    else:
+
+        heatmap_df[question_col] = (
+            heatmap_df[question_col]
+            .astype(str)
+            .str.strip()
+        )
+
+    if selected_question == "Q16 - Forecasting Method":
+
+        heatmap_df[question_col] = (
+            heatmap_df[question_col]
+            .apply(normalize_other_response)
         )
 
     top_responses = (
@@ -329,7 +448,10 @@ try:
     cross_df = (
         heatmap_df
         .groupby(
-            [ORG_COL, question_col]
+            [
+                AGENCY_COL,
+                question_col
+            ]
         )
         .size()
         .unstack(fill_value=0)
@@ -338,7 +460,16 @@ try:
     fig2 = px.imshow(
         cross_df,
         aspect="auto",
-        title="Agency Comparison Heatmap"
+        title="Response Heatmap by Agency",
+        labels=dict(
+            x="Response",
+            y="Agency",
+            color="Count"
+        )
+    )
+
+    fig2.update_layout(
+        height=650
     )
 
     st.plotly_chart(
@@ -404,15 +535,11 @@ Response share:
 
 A total of **{len(responses)} responses**
 were analyzed across
-**{analysis_df[ORG_COL].nunique()} organizations**.
+**{analysis_df[AGENCY_COL].nunique()} agencies**.
 
-The findings provide insight into
-forecasting maturity, confidence in
-deterioration modelling and the use
-of forecasting in decision-making.
+The findings provide insight into forecasting maturity, confidence in
+deterioration modelling and the use of forecasting in decision-making.
 
-Differences across organizations may
-highlight opportunities for improved
-forecasting capability, evidence-based
-planning and asset management maturity.
+Differences across agencies may highlight opportunities for improved
+forecasting capability, evidence-based planning and asset management maturity.
 """)
