@@ -1,7 +1,7 @@
 # ==========================================================
 # DATA MATURITY ANALYSIS
 # Sprint 3A - Page 2
-# Framework Aligned Production Version
+# Polished Production Version
 # ==========================================================
 
 import streamlit as st
@@ -18,6 +18,50 @@ st.set_page_config(
     page_title="Data Maturity Analysis",
     page_icon="📊",
     layout="wide"
+)
+
+# ==========================================================
+# VISUAL STYLE SETTINGS
+# ==========================================================
+
+COLOR_SEQUENCE = px.colors.qualitative.Set2
+BAR_COLOR_SEQUENCE = px.colors.qualitative.Bold
+HEATMAP_SCALE = "YlGnBu"
+
+# ==========================================================
+# CUSTOM CSS
+# ==========================================================
+
+st.markdown(
+    """
+<style>
+
+.section-title{
+    font-size:30px;
+    font-weight:700;
+    margin-top:25px;
+    margin-bottom:15px;
+}
+
+.insight-box{
+    border-left:6px solid #D97706;
+    background:rgba(217,119,6,0.08);
+    padding:18px;
+    border-radius:10px;
+    margin-top:15px;
+    margin-bottom:20px;
+}
+
+div[data-testid="metric-container"]{
+    border-radius:16px;
+    padding:18px;
+    border:1px solid rgba(128,128,128,0.25);
+    background:rgba(15,23,42,0.05);
+}
+
+</style>
+""",
+    unsafe_allow_html=True
 )
 
 # ==========================================================
@@ -90,8 +134,59 @@ if missing_index_cols:
     st.stop()
 
 # ==========================================================
+# HELPER FUNCTIONS
+# ==========================================================
+
+def classify_maturity(score):
+
+    if pd.isna(score):
+        return "Not Available"
+
+    if score < 40:
+        return "Emerging"
+
+    if score < 60:
+        return "Developing"
+
+    if score < 80:
+        return "Advanced"
+
+    return "Leading"
+
+
+def add_percentage(df_in, count_col):
+
+    df_out = df_in.copy()
+
+    total = df_out[count_col].sum()
+
+    if total > 0:
+
+        df_out["Percentage"] = (
+            df_out[count_col]
+            /
+            total
+            *
+            100
+        ).round(1)
+
+    else:
+
+        df_out["Percentage"] = 0
+
+    return df_out
+
+# ==========================================================
 # MERGE DATASETS
 # ==========================================================
+
+master_df = master_df.reset_index(
+    drop=True
+)
+
+indices_df = indices_df.reset_index(
+    drop=True
+)
 
 analysis_df = pd.concat(
     [
@@ -119,6 +214,18 @@ analysis_df = analysis_df.dropna(
         AGENCY_COL,
         INDEX_COL
     ]
+)
+
+if analysis_df.empty:
+
+    st.warning(
+        "No valid DMI records were found after cleaning."
+    )
+
+    st.stop()
+
+analysis_df["Maturity Band"] = analysis_df[INDEX_COL].apply(
+    classify_maturity
 )
 
 # ==========================================================
@@ -158,6 +265,10 @@ agencies = analysis_df[
     AGENCY_COL
 ].nunique()
 
+overall_band = classify_maturity(
+    avg_dmi
+)
+
 c1, c2, c3, c4 = st.columns(4)
 
 c1.metric(
@@ -181,38 +292,8 @@ c4.metric(
 )
 
 # ==========================================================
-# DMI DISTRIBUTION
+# AGENCY LEVEL SUMMARY
 # ==========================================================
-
-st.markdown(
-    "## DMI Distribution"
-)
-
-fig_hist = px.histogram(
-    analysis_df,
-    x=INDEX_COL,
-    nbins=10,
-    title="Distribution of Data Maturity Scores"
-)
-
-fig_hist.update_layout(
-    xaxis_title="Data Maturity Index",
-    yaxis_title="Number of Responses",
-    height=450
-)
-
-st.plotly_chart(
-    fig_hist,
-    use_container_width=True
-)
-
-# ==========================================================
-# DMI BY AGENCY
-# ==========================================================
-
-st.markdown(
-    "## DMI by Agency"
-)
 
 agency_dmi = (
     analysis_df
@@ -228,9 +309,103 @@ agency_dmi[INDEX_COL] = (
     .round(1)
 )
 
+agency_dmi["Maturity Band"] = agency_dmi[INDEX_COL].apply(
+    classify_maturity
+)
+
 agency_dmi = agency_dmi.sort_values(
     INDEX_COL,
     ascending=False
+)
+
+top_agency = (
+    agency_dmi.iloc[0][AGENCY_COL]
+    if not agency_dmi.empty
+    else "Not Available"
+)
+
+top_agency_score = (
+    agency_dmi.iloc[0][INDEX_COL]
+    if not agency_dmi.empty
+    else 0
+)
+
+lowest_agency = (
+    agency_dmi.iloc[-1][AGENCY_COL]
+    if not agency_dmi.empty
+    else "Not Available"
+)
+
+lowest_agency_score = (
+    agency_dmi.iloc[-1][INDEX_COL]
+    if not agency_dmi.empty
+    else 0
+)
+
+# ==========================================================
+# EXECUTIVE SNAPSHOT
+# ==========================================================
+
+st.markdown(
+    f"""
+<div class="insight-box">
+
+<b>Data Maturity Snapshot:</b><br>
+The average Data Maturity Index is <b>{avg_dmi}</b>, placing the overall
+data maturity position in the <b>{overall_band}</b> maturity band.
+
+<br><br>
+The highest average agency DMI is recorded by <b>{top_agency}</b>
+(<b>{top_agency_score}</b>), while the lowest average agency DMI is recorded by
+<b>{lowest_agency}</b> (<b>{lowest_agency_score}</b>).
+
+<br><br>
+This indicates that strengthening data systems, data quality, historical
+records and data governance remains a key priority across participating agencies.
+
+</div>
+""",
+    unsafe_allow_html=True
+)
+
+# ==========================================================
+# DMI DISTRIBUTION
+# ==========================================================
+
+st.markdown(
+    "<div class='section-title'>DMI Distribution</div>",
+    unsafe_allow_html=True
+)
+
+fig_hist = px.histogram(
+    analysis_df,
+    x=INDEX_COL,
+    color="Maturity Band",
+    nbins=10,
+    title="Distribution of Data Maturity Scores",
+    color_discrete_sequence=COLOR_SEQUENCE
+)
+
+fig_hist.update_layout(
+    xaxis_title="Data Maturity Index",
+    yaxis_title="Number of Responses",
+    height=480,
+    bargap=0.10,
+    legend_title_text="Maturity Band"
+)
+
+st.plotly_chart(
+    fig_hist,
+    use_container_width=True
+)
+
+# ==========================================================
+# DMI BY AGENCY
+# ==========================================================
+
+st.markdown(
+    "<div class='section-title'>DMI by Agency</div>",
+    unsafe_allow_html=True
 )
 
 fig_agency = px.bar(
@@ -238,6 +413,8 @@ fig_agency = px.bar(
     x=AGENCY_COL,
     y=INDEX_COL,
     text=INDEX_COL,
+    color=AGENCY_COL,
+    color_discrete_sequence=BAR_COLOR_SEQUENCE,
     title="Average Data Maturity Index by Agency"
 )
 
@@ -250,7 +427,8 @@ fig_agency.update_layout(
             100
         ]
     ),
-    height=500
+    height=520,
+    showlegend=False
 )
 
 fig_agency.update_traces(
@@ -268,7 +446,8 @@ st.plotly_chart(
 # ==========================================================
 
 st.markdown(
-    "## Agency Ranking"
+    "<div class='section-title'>Agency Ranking</div>",
+    unsafe_allow_html=True
 )
 
 ranking_df = agency_dmi.copy()
@@ -282,7 +461,8 @@ ranking_df = ranking_df[
     [
         "Rank",
         AGENCY_COL,
-        INDEX_COL
+        INDEX_COL,
+        "Maturity Band"
     ]
 ]
 
@@ -303,7 +483,8 @@ st.dataframe(
 # ==========================================================
 
 st.markdown(
-    "## DMI Heatmap"
+    "<div class='section-title'>DMI Heatmap</div>",
+    unsafe_allow_html=True
 )
 
 heatmap_df = agency_dmi.copy()
@@ -326,7 +507,10 @@ fig_heatmap = px.imshow(
         "DMI"
     ],
     aspect="auto",
-    title="Data Maturity Heatmap by Agency"
+    title="Data Maturity Heatmap by Agency",
+    color_continuous_scale=HEATMAP_SCALE,
+    zmin=0,
+    zmax=100
 )
 
 fig_heatmap.update_layout(
@@ -339,28 +523,68 @@ st.plotly_chart(
 )
 
 # ==========================================================
+# DMI SUMMARY TABLES
+# ==========================================================
+
+with st.expander(
+    "View Detailed DMI Summary Tables",
+    expanded=False
+):
+
+    st.markdown(
+        "### Agency DMI Summary"
+    )
+
+    st.dataframe(
+        ranking_df,
+        use_container_width=True
+    )
+
+    st.markdown(
+        "### Maturity Band Distribution"
+    )
+
+    band_summary = (
+        analysis_df["Maturity Band"]
+        .value_counts()
+        .reset_index()
+    )
+
+    band_summary.columns = [
+        "Maturity Band",
+        "Responses"
+    ]
+
+    band_summary = add_percentage(
+        band_summary,
+        "Responses"
+    )
+
+    st.dataframe(
+        band_summary,
+        use_container_width=True
+    )
+
+# ==========================================================
 # EXECUTIVE INTERPRETATION
 # ==========================================================
 
 st.info(f"""
 ### Interpretation
 
-The average Data Maturity Index (DMI) was **{avg_dmi}**.
+The average Data Maturity Index (DMI) was **{avg_dmi}**, which indicates an
+overall **{overall_band}** level of data maturity across participating agencies.
 
-This suggests a **low-to-moderate level of data maturity**
-across participating agencies.
+The results suggest that data maturity is currently a key improvement area,
+particularly in relation to data collection systems, historical pavement
+records, data governance and integration of maintenance history with pavement
+condition information.
 
-The results indicate opportunities for:
-
-• Improved data collection systems
-
-• Better historical pavement records
-
-• Stronger data governance
-
-• Enhanced integration of maintenance history with pavement condition information
-
-Agency-level differences suggest that data maturity varies across institutions,
-highlighting opportunities for benchmarking, knowledge sharing and targeted
+Agency-level differences show that some agencies are performing better than
+others, creating opportunities for benchmarking, knowledge sharing and targeted
 data management improvements.
+
+Improving data maturity is important because reliable and accessible pavement
+data provides the foundation for forecasting, modelling, budgeting, prioritisation
+and evidence-based road asset management.
 """)
