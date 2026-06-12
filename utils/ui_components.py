@@ -1,6 +1,7 @@
 # ==========================================================
 # SHARED UI COMPONENTS
 # Professional Research Analytics Dashboard Theme
+# Place this file at: utils/ui_components.py
 # ==========================================================
 
 import html
@@ -8,16 +9,11 @@ import streamlit as st
 
 
 def apply_dashboard_theme():
-    """
-    Applies a reusable dashboard shell/theme across pages.
-    Place this near the top of every Streamlit page after st.set_page_config().
-    """
-
+    """Apply shared dashboard styling."""
     st.markdown(
         """
 <style>
 
-/* GLOBAL APP SHELL */
 .stApp {
     background:
         radial-gradient(circle at top left, rgba(37,99,235,0.16), transparent 26%),
@@ -32,7 +28,6 @@ def apply_dashboard_theme():
     max-width: 1480px;
 }
 
-/* SIDEBAR */
 section[data-testid="stSidebar"] {
     background: linear-gradient(180deg, #07111F 0%, #0B1220 100%);
     border-right: 1px solid rgba(148,163,184,0.20);
@@ -42,11 +37,6 @@ section[data-testid="stSidebar"] * {
     color: #CBD5E1;
 }
 
-section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
-    color: #CBD5E1;
-}
-
-/* TYPOGRAPHY */
 h1, h2, h3, h4 {
     color: #F8FAFC;
     letter-spacing: -0.02em;
@@ -60,7 +50,6 @@ hr {
     border-color: rgba(148,163,184,0.20);
 }
 
-/* TOP STATUS BAR */
 .dashboard-topbar {
     display:flex;
     justify-content:space-between;
@@ -117,7 +106,6 @@ hr {
     font-size:15px;
 }
 
-/* HERO */
 .hero-badge {
     background:rgba(217,119,6,0.12) !important;
     border:1px solid rgba(217,119,6,0.65) !important;
@@ -138,7 +126,6 @@ hr {
     color:#CBD5E1 !important;
 }
 
-/* BADGES AND STORY STRIP */
 .badge-row {
     display:flex;
     flex-wrap:wrap;
@@ -211,7 +198,6 @@ hr {
     line-height:1.35;
 }
 
-/* CARDS, METRICS AND WIDGETS */
 div[data-testid="metric-container"] {
     background:rgba(15,23,42,0.86) !important;
     border:1px solid rgba(148,163,184,0.22) !important;
@@ -285,14 +271,11 @@ div[data-testid="metric-container"] [data-testid="stMetricValue"] {
     overflow:hidden;
 }
 
-/* ALERTS */
 [data-testid="stAlert"] {
     border-radius:16px;
     border:1px solid rgba(148,163,184,0.22);
-    background:rgba(15,23,42,0.78);
 }
 
-/* RESPONSIVE */
 @media (max-width: 900px) {
     .dashboard-topbar {
         flex-direction:column;
@@ -343,16 +326,10 @@ def render_top_status_bar(
 
 
 def render_status_badges(badges):
-    """
-    badges can be a list of strings or tuples: ("TEXT", "blue")
-    supported colours: blue, green, amber, purple
-    """
-
     badge_html = ""
     colour_cycle = ["blue", "green", "amber", "purple"]
 
     for i, badge in enumerate(badges):
-
         if isinstance(badge, tuple):
             text, colour = badge
         else:
@@ -390,4 +367,3 @@ def render_story_strip(domain, evidence, decision_use):
 """,
         unsafe_allow_html=True
     )
-
