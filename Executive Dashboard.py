@@ -30,13 +30,6 @@ from utils.data_cleaning import (
 from utils.theme_coder import build_theme_dataset
 from utils.theme_dictionary import THEME_KEYWORDS
 
-from utils.ui_components import (
-    apply_dashboard_theme,
-    render_top_status_bar,
-    render_status_badges,
-    render_story_strip
-)
-
 # ==========================================================
 # PAGE CONFIG
 # ==========================================================
@@ -111,8 +104,6 @@ INDEX_LABELS = {
 COLOR_SEQUENCE = px.colors.qualitative.Set2
 ALT_COLOR_SEQUENCE = px.colors.qualitative.Pastel
 THEME_COLOR_SEQUENCE = px.colors.qualitative.Bold
-
-px.defaults.template = "plotly_dark"
 
 # ==========================================================
 # CUSTOM CSS
@@ -208,12 +199,6 @@ div[data-testid="metric-container"]{
 """,
     unsafe_allow_html=True
 )
-
-# ==========================================================
-# SHARED DASHBOARD SHELL
-# ==========================================================
-
-apply_dashboard_theme()
 
 # ==========================================================
 # DATA LOADING
@@ -403,11 +388,7 @@ def gauge_chart(title, value):
     )
 
     fig.update_layout(
-        height=300,
-        template="plotly_dark",
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#E5E7EB")
+        height=300
     )
 
     return fig
@@ -463,7 +444,7 @@ analysis_df = pd.concat(
 # ==========================================================
 
 st.sidebar.header(
-    "⚙ Dashboard Controls"
+    "Dashboard Filters"
 )
 
 selected_agencies = st.sidebar.multiselect(
@@ -749,35 +730,6 @@ try:
 except Exception:
 
     dominant_operational_theme = "Not Available"
-
-# ==========================================================
-# DASHBOARD STATUS BAR, BADGES AND STORY STRIP
-# ==========================================================
-
-render_top_status_bar([
-    ("📦", "Dataset", "Interim Dataset"),
-    ("👥", "Responses", responses),
-    ("🏢", "Agencies", agencies),
-    ("👤", "Positions", positions),
-    ("📊", "Avg Score", average_overall_score),
-    ("🏁", "Leader", f"{top_agency} ({top_score:.1f})"),
-    ("⚠", "Priority Gap", weakest_maturity_area),
-    ("🧩", "Themes", f"{strategic_theme_groups} strategic / {operational_theme_count} operational"),
-    ("🔄", "Status", "Final Refresh Pending")
-])
-
-render_status_badges([
-    ("INTERIM DATASET", "blue"),
-    ("FRAMEWORK ALIGNED", "green"),
-    ("FINAL REFRESH PENDING", "amber"),
-    ("EXECUTIVE DECISION-SUPPORT", "purple")
-])
-
-render_story_strip(
-    domain="Full Research Overview",
-    evidence="Q1–Q28, maturity indices, benchmarking and qualitative themes",
-    decision_use="Guide agency benchmarking, gap analysis and strategic planning"
-)
 
 # ==========================================================
 # HERO
