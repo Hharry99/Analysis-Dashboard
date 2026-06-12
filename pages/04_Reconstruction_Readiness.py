@@ -1,7 +1,7 @@
 # ==========================================================
 # RECONSTRUCTION READINESS ANALYSIS
 # Sprint 3A - Page 4
-# Framework Aligned Production Version
+# Polished Production Version
 # ==========================================================
 
 import streamlit as st
@@ -18,6 +18,59 @@ st.set_page_config(
     page_title="Reconstruction Readiness Analysis",
     page_icon="📊",
     layout="wide"
+)
+
+# ==========================================================
+# VISUAL STYLE SETTINGS
+# ==========================================================
+
+COLOR_SEQUENCE = px.colors.qualitative.Set2
+BAR_COLOR_SEQUENCE = px.colors.qualitative.Bold
+HEATMAP_SCALE = "YlGnBu"
+
+# ==========================================================
+# CUSTOM CSS
+# ==========================================================
+
+st.markdown(
+    """
+<style>
+
+.section-title{
+    font-size:30px;
+    font-weight:700;
+    margin-top:25px;
+    margin-bottom:15px;
+}
+
+.insight-box{
+    border-left:6px solid #059669;
+    background:rgba(5,150,105,0.08);
+    padding:18px;
+    border-radius:10px;
+    margin-top:15px;
+    margin-bottom:20px;
+}
+
+.warning-note{
+    border-left:6px solid #F59E0B;
+    background:rgba(245,158,11,0.10);
+    padding:16px;
+    border-radius:10px;
+    margin-top:12px;
+    margin-bottom:18px;
+}
+
+div[data-testid="metric-container"]{
+    border-radius:16px;
+    padding:18px;
+    border:1px solid rgba(128,128,128,0.25);
+    background:rgba(15,23,42,0.05);
+}
+
+</style>
+""",
+    unsafe_allow_html=True
 )
 
 # ==========================================================
@@ -90,8 +143,59 @@ if missing_index_cols:
     st.stop()
 
 # ==========================================================
+# HELPER FUNCTIONS
+# ==========================================================
+
+def classify_maturity(score):
+
+    if pd.isna(score):
+        return "Not Available"
+
+    if score < 40:
+        return "Emerging"
+
+    if score < 60:
+        return "Developing"
+
+    if score < 80:
+        return "Advanced"
+
+    return "Leading"
+
+
+def add_percentage(df_in, count_col):
+
+    df_out = df_in.copy()
+
+    total = df_out[count_col].sum()
+
+    if total > 0:
+
+        df_out["Percentage"] = (
+            df_out[count_col]
+            /
+            total
+            *
+            100
+        ).round(1)
+
+    else:
+
+        df_out["Percentage"] = 0
+
+    return df_out
+
+# ==========================================================
 # PREPARE DATA
 # ==========================================================
+
+master_df = master_df.reset_index(
+    drop=True
+)
+
+indices_df = indices_df.reset_index(
+    drop=True
+)
 
 analysis_df = pd.concat(
     [
@@ -119,6 +223,18 @@ analysis_df = analysis_df.dropna(
         AGENCY_COL,
         INDEX_COL
     ]
+)
+
+if analysis_df.empty:
+
+    st.warning(
+        "No valid RRI records were found after cleaning."
+    )
+
+    st.stop()
+
+analysis_df["Maturity Band"] = analysis_df[INDEX_COL].apply(
+    classify_maturity
 )
 
 # ==========================================================
@@ -157,6 +273,10 @@ agencies = analysis_df[
     AGENCY_COL
 ].nunique()
 
+overall_band = classify_maturity(
+    avg_rri
+)
+
 c1, c2, c3, c4 = st.columns(4)
 
 c1.metric(
@@ -180,53 +300,8 @@ c4.metric(
 )
 
 # ==========================================================
-# RRI DATA CHECK
+# AGENCY LEVEL SUMMARY
 # ==========================================================
-
-if analysis_df[INDEX_COL].nunique() <= 1:
-
-    st.warning("""
-    RRI contains only one unique value.
-
-    This suggests the index may have been reconstructed as a constant
-    rather than calculated per respondent.
-
-    Review indices_dataset.csv during the final dataset refresh.
-    """)
-
-# ==========================================================
-# RRI DISTRIBUTION
-# ==========================================================
-
-st.markdown(
-    "## RRI Distribution"
-)
-
-fig_hist = px.histogram(
-    analysis_df,
-    x=INDEX_COL,
-    nbins=10,
-    title="Distribution of Reconstruction Readiness Scores"
-)
-
-fig_hist.update_layout(
-    xaxis_title="Reconstruction Readiness Index",
-    yaxis_title="Number of Responses",
-    height=450
-)
-
-st.plotly_chart(
-    fig_hist,
-    use_container_width=True
-)
-
-# ==========================================================
-# RRI BY AGENCY
-# ==========================================================
-
-st.markdown(
-    "## RRI by Agency"
-)
 
 agency_rri = (
     analysis_df
@@ -242,9 +317,125 @@ agency_rri[INDEX_COL] = (
     .round(1)
 )
 
+agency_rri["Maturity Band"] = agency_rri[INDEX_COL].apply(
+    classify_maturity
+)
+
 agency_rri = agency_rri.sort_values(
     INDEX_COL,
     ascending=False
+)
+
+top_agency = (
+    agency_rri.iloc[0][AGENCY_COL]
+    if not agency_rri.empty
+    else "Not Available"
+)
+
+top_agency_score = (
+    agency_rri.iloc[0][INDEX_COL]
+    if not agency_rri.empty
+    else 0
+)
+
+lowest_agency = (
+    agency_rri.iloc[-1][AGENCY_COL]
+    if not agency_rri.empty
+    else "Not Available"
+)
+
+lowest_agency_score = (
+    agency_rri.iloc[-1][INDEX_COL]
+    if not agency_rri.empty
+    else 0
+)
+
+# ==========================================================
+# EXECUTIVE SNAPSHOT
+# ==========================================================
+
+st.markdown(
+    f"""
+<div class="insight-box">
+
+<b>Reconstruction Readiness Snapshot:</b><br>
+The average Reconstruction Readiness Index is <b>{avg_rri}</b>, placing the
+overall reconstruction readiness position in the <b>{overall_band}</b> maturity band.
+
+<br><br>
+The highest average agency RRI is recorded by <b>{top_agency}</b>
+(<b>{top_agency_score}</b>), while the lowest average agency RRI is recorded by
+<b>{lowest_agency}</b> (<b>{lowest_agency_score}</b>).
+
+<br><br>
+This suggests that reconstruction planning and rehabilitation readiness are
+relatively stronger than other maturity dimensions, but agency-level differences
+still point to opportunities for improved prioritization, lifecycle planning and
+investment programming.
+
+</div>
+""",
+    unsafe_allow_html=True
+)
+
+# ==========================================================
+# RRI DATA CHECK
+# ==========================================================
+
+if analysis_df[INDEX_COL].nunique() <= 1:
+
+    st.markdown(
+        """
+<div class="warning-note">
+
+<b>Data Quality Note:</b>
+RRI contains only one unique value. This may suggest that the index was
+reconstructed as a constant rather than calculated per respondent. Review
+indices_dataset.csv during the final dataset refresh.
+
+</div>
+""",
+        unsafe_allow_html=True
+    )
+
+# ==========================================================
+# RRI DISTRIBUTION
+# ==========================================================
+
+st.markdown(
+    "<div class='section-title'>RRI Distribution</div>",
+    unsafe_allow_html=True
+)
+
+fig_hist = px.histogram(
+    analysis_df,
+    x=INDEX_COL,
+    color="Maturity Band",
+    nbins=10,
+    title="Distribution of Reconstruction Readiness Scores",
+    color_discrete_sequence=COLOR_SEQUENCE
+)
+
+fig_hist.update_layout(
+    xaxis_title="Reconstruction Readiness Index",
+    yaxis_title="Number of Responses",
+    height=480,
+    bargap=0.10,
+    legend_title_text="Maturity Band"
+)
+
+st.plotly_chart(
+    fig_hist,
+    use_container_width=True
+)
+
+# ==========================================================
+# RRI BY AGENCY
+# ==========================================================
+
+st.markdown(
+    "<div class='section-title'>RRI by Agency</div>",
+    unsafe_allow_html=True
 )
 
 fig_agency = px.bar(
@@ -252,6 +443,8 @@ fig_agency = px.bar(
     x=AGENCY_COL,
     y=INDEX_COL,
     text=INDEX_COL,
+    color=AGENCY_COL,
+    color_discrete_sequence=BAR_COLOR_SEQUENCE,
     title="Average Reconstruction Readiness Index by Agency"
 )
 
@@ -264,7 +457,8 @@ fig_agency.update_layout(
             100
         ]
     ),
-    height=500
+    height=520,
+    showlegend=False
 )
 
 fig_agency.update_traces(
@@ -282,7 +476,8 @@ st.plotly_chart(
 # ==========================================================
 
 st.markdown(
-    "## Agency Ranking"
+    "<div class='section-title'>Agency Ranking</div>",
+    unsafe_allow_html=True
 )
 
 ranking_df = agency_rri.copy()
@@ -296,7 +491,8 @@ ranking_df = ranking_df[
     [
         "Rank",
         AGENCY_COL,
-        INDEX_COL
+        INDEX_COL,
+        "Maturity Band"
     ]
 ]
 
@@ -317,7 +513,8 @@ st.dataframe(
 # ==========================================================
 
 st.markdown(
-    "## RRI Heatmap"
+    "<div class='section-title'>RRI Heatmap</div>",
+    unsafe_allow_html=True
 )
 
 heatmap_df = agency_rri.copy()
@@ -340,7 +537,10 @@ fig_heatmap = px.imshow(
         "RRI"
     ],
     aspect="auto",
-    title="Reconstruction Readiness Heatmap by Agency"
+    title="Reconstruction Readiness Heatmap by Agency",
+    color_continuous_scale=HEATMAP_SCALE,
+    zmin=0,
+    zmax=100
 )
 
 fig_heatmap.update_layout(
@@ -353,22 +553,67 @@ st.plotly_chart(
 )
 
 # ==========================================================
+# RRI SUMMARY TABLES
+# ==========================================================
+
+with st.expander(
+    "View Detailed RRI Summary Tables",
+    expanded=False
+):
+
+    st.markdown(
+        "### Agency RRI Summary"
+    )
+
+    st.dataframe(
+        ranking_df,
+        use_container_width=True
+    )
+
+    st.markdown(
+        "### Maturity Band Distribution"
+    )
+
+    band_summary = (
+        analysis_df["Maturity Band"]
+        .value_counts()
+        .reset_index()
+    )
+
+    band_summary.columns = [
+        "Maturity Band",
+        "Responses"
+    ]
+
+    band_summary = add_percentage(
+        band_summary,
+        "Responses"
+    )
+
+    st.dataframe(
+        band_summary,
+        use_container_width=True
+    )
+
+# ==========================================================
 # EXECUTIVE INTERPRETATION
 # ==========================================================
 
 st.info(f"""
 ### Interpretation
 
-The average Reconstruction Readiness Index (RRI) was **{avg_rri}**.
+The average Reconstruction Readiness Index (RRI) was **{avg_rri}**, which
+indicates an overall **{overall_band}** level of reconstruction readiness
+across participating agencies.
 
-This reflects the extent to which participating agencies are prepared
-for pavement rehabilitation, reconstruction planning, treatment selection,
-prioritization and implementation decision-making.
+This reflects the extent to which agencies are prepared for pavement
+rehabilitation, reconstruction planning, treatment selection, prioritization
+and implementation decision-making.
 
-The relatively high readiness score suggests that reconstruction planning
-practices are more mature than data maturity and forecasting capabilities.
+The relatively strong readiness score suggests that reconstruction planning
+practices are more mature than data maturity and forecasting capability.
 
 However, agency-level differences indicate opportunities for improved
-prioritization, investment planning, lifecycle planning and evidence-based
-reconstruction programming.
+prioritization, lifecycle planning, investment programming and evidence-based
+reconstruction decision-making.
 """)
