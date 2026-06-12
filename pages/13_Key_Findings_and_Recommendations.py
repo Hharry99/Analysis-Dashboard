@@ -1,8 +1,9 @@
 # ==========================================================
 # KEY FINDINGS AND RECOMMENDATIONS
-# Sprint 3D.2 - Framework Aligned Production Version
+# Sprint 3D.2 - Polished Production Version
 # ==========================================================
 
+import html
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -15,6 +16,94 @@ st.set_page_config(
     page_title="Key Findings & Recommendations",
     page_icon="📊",
     layout="wide"
+)
+
+# ==========================================================
+# VISUAL STYLE SETTINGS
+# ==========================================================
+
+BAR_COLOR_SEQUENCE = px.colors.qualitative.Bold
+ALT_COLOR_SEQUENCE = px.colors.qualitative.Set2
+
+# ==========================================================
+# CUSTOM CSS
+# ==========================================================
+
+st.markdown(
+    """
+<style>
+
+.section-title{
+    font-size:30px;
+    font-weight:700;
+    margin-top:25px;
+    margin-bottom:15px;
+}
+
+.note-box{
+    border-left:5px solid #2563EB;
+    background:rgba(37,99,235,0.08);
+    padding:15px;
+    border-radius:10px;
+    margin-top:10px;
+    margin-bottom:20px;
+}
+
+.insight-box{
+    border-left:6px solid #D97706;
+    background:rgba(217,119,6,0.08);
+    padding:18px;
+    border-radius:10px;
+    margin-top:15px;
+    margin-bottom:20px;
+}
+
+.finding-card{
+    border-left:5px solid #7C3AED;
+    background:rgba(124,58,237,0.08);
+    padding:16px 18px;
+    border-radius:10px;
+    margin-bottom:14px;
+    line-height:1.5;
+}
+
+.recommendation-card{
+    border-left:5px solid #059669;
+    background:rgba(5,150,105,0.08);
+    padding:16px 18px;
+    border-radius:10px;
+    margin-bottom:14px;
+    line-height:1.5;
+}
+
+.risk-note{
+    border-left:5px solid #DC2626;
+    background:rgba(220,38,38,0.08);
+    padding:16px 18px;
+    border-radius:10px;
+    margin-top:12px;
+    margin-bottom:18px;
+}
+
+.benefit-box{
+    border-left:5px solid #2563EB;
+    background:rgba(37,99,235,0.08);
+    padding:16px 18px;
+    border-radius:10px;
+    margin-top:12px;
+    margin-bottom:18px;
+}
+
+div[data-testid="metric-container"]{
+    border-radius:16px;
+    padding:18px;
+    border:1px solid rgba(128,128,128,0.25);
+    background:rgba(15,23,42,0.05);
+}
+
+</style>
+""",
+    unsafe_allow_html=True
 )
 
 # ==========================================================
@@ -71,6 +160,74 @@ if missing_cols:
     st.stop()
 
 # ==========================================================
+# HELPER FUNCTIONS
+# ==========================================================
+
+def classify_score(score):
+
+    if pd.isna(score):
+        return "Not Available"
+
+    if score < 40:
+        return "Emerging"
+
+    if score < 60:
+        return "Developing"
+
+    if score < 80:
+        return "Advanced"
+
+    return "Leading"
+
+
+def round_columns(df, cols, decimals=1):
+
+    df = df.copy()
+
+    for col in cols:
+
+        if col in df.columns:
+
+            df[col] = pd.to_numeric(
+                df[col],
+                errors="coerce"
+            ).round(decimals)
+
+    return df
+
+
+def render_finding_card(number, title, evidence):
+
+    safe_title = html.escape(str(title))
+    safe_evidence = html.escape(str(evidence))
+
+    st.markdown(
+        f"""
+<div class="finding-card">
+<b>Finding {number}: {safe_title}</b><br>
+{safe_evidence}
+</div>
+""",
+        unsafe_allow_html=True
+    )
+
+
+def render_recommendation_card(number, title, rationale):
+
+    safe_title = html.escape(str(title))
+    safe_rationale = html.escape(str(rationale))
+
+    st.markdown(
+        f"""
+<div class="recommendation-card">
+<b>Recommendation {number}: {safe_title}</b><br>
+{safe_rationale}
+</div>
+""",
+        unsafe_allow_html=True
+    )
+
+# ==========================================================
 # CLEAN AND STANDARDIZE BENCHMARK DATA
 # ==========================================================
 
@@ -98,12 +255,19 @@ benchmark_df = benchmark_df.dropna(
     ]
 )
 
+if benchmark_df.empty:
+
+    st.warning(
+        "No valid benchmark records were found."
+    )
+
+    st.stop()
+
 # ----------------------------------------------------------
-# IMPORTANT:
 # Display-level de-duplication only.
 # This ensures the page uses one benchmark row per agency.
-# The final benchmark dataset will still be regenerated
-# after survey closure and final validation.
+# The final benchmark dataset will still be regenerated after
+# survey closure and final validation.
 # ----------------------------------------------------------
 
 benchmark_df = (
@@ -125,6 +289,16 @@ benchmark_df["Display_Rank"] = (
     benchmark_df.index + 1
 )
 
+benchmark_df["Maturity Stage"] = benchmark_df["Overall_Score"].apply(
+    classify_score
+)
+
+benchmark_df = round_columns(
+    benchmark_df,
+    numeric_cols,
+    decimals=1
+)
+
 agency_count = benchmark_df["Agency"].nunique()
 
 # ==========================================================
@@ -137,18 +311,22 @@ st.title(
 
 st.markdown("""
 This page consolidates the major findings from the maturity assessment,
-question-level analytics, thematic insights, benchmarking results and
-strategic roadmap.
+question-level analytics, thematic insights, benchmarking results and strategic
+roadmap.
 
 It is designed as an executive summary for decision-makers.
 """)
 
-st.caption(
+st.markdown(
     """
-    Note: Current findings use the available benchmark dataset.
-    Final findings, rankings and recommendations will be refreshed
-    after survey closure and final dataset validation.
-    """
+<div class="note-box">
+<b>Findings Note:</b>
+Current findings use the available benchmark dataset. Final findings, rankings
+and recommendations will be refreshed after survey closure and final dataset
+validation.
+</div>
+""",
+    unsafe_allow_html=True
 )
 
 # ==========================================================
@@ -156,20 +334,30 @@ st.caption(
 # ==========================================================
 
 st.markdown(
-    "## Executive Summary KPIs"
+    "<div class='section-title'>Executive Summary KPIs</div>",
+    unsafe_allow_html=True
 )
 
-avg_score = benchmark_df[
-    "Overall_Score"
-].mean()
+avg_score = round(
+    benchmark_df[
+        "Overall_Score"
+    ].mean(),
+    1
+)
 
-highest_score = benchmark_df[
-    "Overall_Score"
-].max()
+highest_score = round(
+    benchmark_df[
+        "Overall_Score"
+    ].max(),
+    1
+)
 
-lowest_score = benchmark_df[
-    "Overall_Score"
-].min()
+lowest_score = round(
+    benchmark_df[
+        "Overall_Score"
+    ].min(),
+    1
+)
 
 top_agency = benchmark_df.loc[
     benchmark_df["Overall_Score"].idxmax(),
@@ -181,6 +369,10 @@ lowest_agency = benchmark_df.loc[
     "Agency"
 ]
 
+overall_stage = classify_score(
+    avg_score
+)
+
 c1, c2, c3, c4 = st.columns(4)
 
 c1.metric(
@@ -190,26 +382,51 @@ c1.metric(
 
 c2.metric(
     "Average Overall Score",
-    round(
-        avg_score,
-        2
-    )
+    avg_score
 )
 
 c3.metric(
     "Highest Score",
-    round(
-        highest_score,
-        2
-    )
+    highest_score
 )
 
 c4.metric(
     "Lowest Score",
-    round(
-        lowest_score,
-        2
-    )
+    lowest_score
+)
+
+# ==========================================================
+# EXECUTIVE SNAPSHOT
+# ==========================================================
+
+score_range = round(
+    highest_score
+    -
+    lowest_score,
+    1
+)
+
+st.markdown(
+    f"""
+<div class="insight-box">
+
+<b>Executive Findings Snapshot:</b><br>
+A total of <b>{agency_count}</b> agencies were assessed. The current sector
+average overall maturity score is <b>{avg_score}</b>, placing the overall
+position in the <b>{overall_stage}</b> maturity stage.
+
+<br><br>
+The current benchmark leader is <b>{top_agency}</b> with a score of
+<b>{highest_score}</b>, while the lowest current overall score is recorded by
+<b>{lowest_agency}</b> with a score of <b>{lowest_score}</b>.
+
+<br><br>
+The current spread between the highest and lowest overall scores is
+<b>{score_range}</b> points.
+
+</div>
+""",
+    unsafe_allow_html=True
 )
 
 # ==========================================================
@@ -217,7 +434,8 @@ c4.metric(
 # ==========================================================
 
 st.markdown(
-    "## Maturity Dimension Summary"
+    "<div class='section-title'>Maturity Dimension Summary</div>",
+    unsafe_allow_html=True
 )
 
 dimension_summary = pd.DataFrame({
@@ -237,7 +455,11 @@ dimension_summary = pd.DataFrame({
 
 dimension_summary["Average Score"] = (
     dimension_summary["Average Score"]
-    .round(2)
+    .round(1)
+)
+
+dimension_summary["Maturity Stage"] = dimension_summary["Average Score"].apply(
+    classify_score
 )
 
 fig_dim = px.bar(
@@ -249,16 +471,26 @@ fig_dim = px.bar(
     y="Dimension",
     orientation="h",
     text="Average Score",
+    color="Dimension",
+    color_discrete_sequence=BAR_COLOR_SEQUENCE,
     title="Average Maturity Scores by Dimension"
 )
 
 fig_dim.update_layout(
     xaxis_title="Average Score",
-    yaxis_title="Maturity Dimension"
+    yaxis_title="Maturity Dimension",
+    xaxis=dict(
+        range=[
+            0,
+            100
+        ]
+    ),
+    height=460,
+    showlegend=False
 )
 
 fig_dim.update_traces(
-    texttemplate="%{text:.2f}",
+    texttemplate="%{text:.1f}",
     textposition="outside"
 )
 
@@ -267,12 +499,18 @@ st.plotly_chart(
     use_container_width=True
 )
 
+st.dataframe(
+    dimension_summary,
+    use_container_width=True
+)
+
 # ==========================================================
 # AUTOMATED FINDINGS
 # ==========================================================
 
 st.markdown(
-    "## Key Findings"
+    "<div class='section-title'>Key Findings</div>",
+    unsafe_allow_html=True
 )
 
 best_dimension_code = (
@@ -299,51 +537,45 @@ weakest_dimension = INDEX_LABELS[
     weakest_dimension_code
 ]
 
-score_range = (
-    highest_score
-    -
-    lowest_score
-)
-
 findings = [
 
     {
-        "Finding": "Overall maturity levels are moderate",
+        "Finding": "Overall maturity remains at a developing level",
         "Evidence": (
-            f"The average overall maturity score across participating "
-            f"agencies is {avg_score:.2f}."
+            f"The average overall maturity score across participating agencies "
+            f"is {avg_score}."
         )
     },
 
     {
         "Finding": f"{top_agency} is the current benchmark leader",
         "Evidence": (
-            f"{top_agency} recorded the highest overall score "
-            f"of {highest_score:.2f}."
+            f"{top_agency} recorded the highest overall score of "
+            f"{highest_score}."
         )
     },
 
     {
         "Finding": f"{weakest_dimension} is the main system-wide gap",
         "Evidence": (
-            f"{weakest_dimension} recorded the lowest average score "
-            f"among the four maturity dimensions."
+            f"{weakest_dimension} recorded the lowest average score among "
+            f"the four maturity dimensions."
         )
     },
 
     {
         "Finding": f"{best_dimension} is the strongest maturity dimension",
         "Evidence": (
-            f"{best_dimension} recorded the highest average score "
-            f"across agencies."
+            f"{best_dimension} recorded the highest average score across "
+            f"agencies."
         )
     },
 
     {
         "Finding": "Agency performance gaps remain visible",
         "Evidence": (
-            f"The difference between the highest and lowest overall "
-            f"scores is {score_range:.2f} points."
+            f"The difference between the highest and lowest overall scores "
+            f"is {score_range} points."
         )
     }
 ]
@@ -353,18 +585,29 @@ for i, item in enumerate(
     start=1
 ):
 
-    st.info(f"""
-### Finding {i}: {item["Finding"]}
-
-{item["Evidence"]}
-""")
+    render_finding_card(
+        i,
+        item["Finding"],
+        item["Evidence"]
+    )
 
 # ==========================================================
 # KEY RISKS
 # ==========================================================
 
 st.markdown(
-    "## Key Risks"
+    "<div class='section-title'>Key Risks</div>",
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    """
+<div class="risk-note">
+The risks below summarise the main implementation concerns that may affect
+progress towards more mature, evidence-based road asset management.
+</div>
+""",
+    unsafe_allow_html=True
 )
 
 risk_df = pd.DataFrame({
@@ -412,7 +655,8 @@ st.dataframe(
 # ==========================================================
 
 st.markdown(
-    "## Strategic Recommendations"
+    "<div class='section-title'>Strategic Recommendations</div>",
+    unsafe_allow_html=True
 )
 
 recommendations = [
@@ -444,15 +688,15 @@ recommendations = [
     {
         "Recommendation": "Enhance capacity building and technical training",
         "Rationale": (
-            "Staff capacity is required to translate data, models and "
-            "systems into effective decisions."
+            "Staff capacity is required to translate data, models and systems "
+            "into effective decisions."
         )
     },
 
     {
         "Recommendation": "Improve institutional coordination and information sharing",
         "Rationale": (
-            "Cross-agency coordination supports consistency, standardization "
+            "Cross-agency coordination supports consistency, standardisation "
             "and better sector-wide performance management."
         )
     }
@@ -463,18 +707,19 @@ for i, rec in enumerate(
     start=1
 ):
 
-    st.success(f"""
-### Recommendation {i}: {rec["Recommendation"]}
-
-{rec["Rationale"]}
-""")
+    render_recommendation_card(
+        i,
+        rec["Recommendation"],
+        rec["Rationale"]
+    )
 
 # ==========================================================
 # PRIORITY INVESTMENT AREAS
 # ==========================================================
 
 st.markdown(
-    "## Priority Investment Areas"
+    "<div class='section-title'>Priority Investment Areas</div>",
+    unsafe_allow_html=True
 )
 
 priority_df = (
@@ -496,7 +741,8 @@ priority_df = priority_df[
     [
         "Priority Rank",
         "Dimension",
-        "Average Score"
+        "Average Score",
+        "Maturity Stage"
     ]
 ]
 
@@ -514,16 +760,26 @@ fig_priority = px.bar(
     y="Dimension",
     orientation="h",
     text="Average Score",
+    color="Dimension",
+    color_discrete_sequence=ALT_COLOR_SEQUENCE,
     title="Priority Areas Based on Average Maturity Scores"
 )
 
 fig_priority.update_layout(
     xaxis_title="Average Score",
-    yaxis_title="Priority Area"
+    yaxis_title="Priority Area",
+    xaxis=dict(
+        range=[
+            0,
+            100
+        ]
+    ),
+    height=460,
+    showlegend=False
 )
 
 fig_priority.update_traces(
-    texttemplate="%{text:.2f}",
+    texttemplate="%{text:.1f}",
     textposition="outside"
 )
 
@@ -537,7 +793,8 @@ st.plotly_chart(
 # ==========================================================
 
 st.markdown(
-    "## Expected Benefits"
+    "<div class='section-title'>Expected Benefits</div>",
+    unsafe_allow_html=True
 )
 
 benefits = [
@@ -549,47 +806,109 @@ benefits = [
     "Improved road network performance monitoring"
 ]
 
-benefit_text = "\n".join(
-    [
-        f"• {benefit}"
-        for benefit in benefits
-    ]
+benefit_items = ""
+
+for benefit in benefits:
+
+    benefit_items += (
+        f'<li>{html.escape(benefit)}</li>'
+    )
+
+st.markdown(
+    f"""
+<div class="benefit-box">
+<b>Successful implementation of the recommendations is expected to support:</b>
+<ul>
+{benefit_items}
+</ul>
+</div>
+""",
+    unsafe_allow_html=True
 )
 
-st.success(f"""
-Successful implementation of the recommendations is expected to support:
+# ==========================================================
+# DETAILED TABLES
+# ==========================================================
 
-{benefit_text}
-""")
+with st.expander(
+    "View Detailed Findings Tables",
+    expanded=False
+):
+
+    st.markdown(
+        "### Benchmark Ranking"
+    )
+
+    ranking_df = benchmark_df[
+        [
+            "Display_Rank",
+            "Agency",
+            "Overall_Score",
+            "Maturity Stage",
+            "DMI",
+            "FMI",
+            "RRI",
+            "DRI"
+        ]
+    ].copy()
+
+    ranking_df = ranking_df.rename(
+        columns={
+            "Display_Rank": "Rank",
+            "Overall_Score": "Overall Score"
+        }
+    )
+
+    st.dataframe(
+        ranking_df,
+        use_container_width=True
+    )
+
+    st.markdown(
+        "### Dimension Summary"
+    )
+
+    st.dataframe(
+        dimension_summary,
+        use_container_width=True
+    )
+
+    st.markdown(
+        "### Priority Investment Areas"
+    )
+
+    st.dataframe(
+        priority_df,
+        use_container_width=True
+    )
 
 # ==========================================================
 # FINAL EXECUTIVE SUMMARY
 # ==========================================================
 
 st.markdown(
-    "## Final Executive Summary"
+    "<div class='section-title'>Final Executive Summary</div>",
+    unsafe_allow_html=True
 )
 
 st.info(f"""
-The assessment shows that participating agencies have established
-a foundation for road asset management maturity, but important
-improvement gaps remain.
+The assessment shows that participating agencies have established a foundation
+for road asset management maturity, but important improvement gaps remain.
 
-The highest benchmark score was recorded by **{top_agency}**,
-while **{lowest_agency}** recorded the lowest overall score.
-The system-wide average maturity score is **{avg_score:.2f}**
-across **{agency_count} participating agencies**.
+The highest benchmark score was recorded by **{top_agency}**, while
+**{lowest_agency}** recorded the lowest overall score. The system-wide average
+maturity score is **{avg_score}** across **{agency_count} participating
+agencies**.
 
-The strongest maturity area is **{best_dimension}**, while the
-main improvement priority is **{weakest_dimension}**.
+The strongest maturity area is **{best_dimension}**, while the main improvement
+priority is **{weakest_dimension}**.
 
-The evidence from the maturity indices, question-level analysis,
-open-ended responses and benchmarking results points to the need
-for targeted investment in data systems, forecasting capability,
-capacity building, digital transformation and institutional
-coordination.
+The evidence from the maturity indices, question-level analysis, open-ended
+responses and benchmarking results points to the need for targeted investment
+in data systems, forecasting capability, capacity building, digital
+transformation and institutional coordination.
 
-The dashboard provides a practical decision-support framework
-for moving agencies toward more mature, evidence-based and
-performance-oriented road asset management.
+The dashboard provides a practical decision-support framework for moving
+agencies toward more mature, evidence-based and performance-oriented road asset
+management.
 """)
