@@ -16,7 +16,7 @@ from utils.data_cleaning import clean_master_dataset
 
 st.set_page_config(
     page_title="Respondent Profile",
-    page_icon="👥",
+    page_icon="📊",
     layout="wide"
 )
 
@@ -186,7 +186,7 @@ def sort_experience_categories(exp_df):
 # ==========================================================
 
 st.title(
-    "👥 Respondent Profile Analysis"
+    "Respondent Profile Analysis"
 )
 
 st.markdown("""
