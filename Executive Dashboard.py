@@ -21,17 +21,16 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 
+from utils.ui_components import (
+    apply_dashboard_theme,
+    render_top_status_bar,
+    render_status_badges,
+    render_story_strip
+)
+
 from utils.data_cleaning import (
     clean_master_dataset,
     index_diagnostics
-)
-
-from utils.theme_coder import (
-    build_theme_dataset
-)
-
-from utils.theme_dictionary import (
-    THEME_KEYWORDS
 )
 
 # ==========================================================
@@ -69,23 +68,6 @@ THEME_DISPLAY_NAMES = {
     "Funding_Resource_Allocation":
         "Funding & Resource Allocation"
 }
-
-Q27_COL = (
-    "Q27. What practical improvements in data systems, institutional "
-    "approaches, or technical capacity would most strengthen pavement "
-    "performance management in Kenya?"
-)
-
-Q28_COL = (
-    "Q28. Do you have any additional comments or recommendations regarding "
-    "forecasting, modelling, or use of condition data in road asset "
-    "management and planning?"
-)
-
-TEXT_COLUMNS = [
-    Q27_COL,
-    Q28_COL
-]
 
 # ==========================================================
 # CUSTOM CSS
@@ -159,17 +141,6 @@ div[data-testid="metric-container"]{
     margin-bottom:20px;
 }
 
-/* NOTE BOX */
-
-.note-box{
-    border-left:5px solid #2563EB;
-    background:rgba(37,99,235,0.08);
-    padding:15px;
-    border-radius:10px;
-    margin-top:10px;
-    margin-bottom:20px;
-}
-
 /* SECTION TITLE */
 
 .section-title{
@@ -182,9 +153,8 @@ div[data-testid="metric-container"]{
 </style>
 """, unsafe_allow_html=True)
 
-
 # ==========================================================
-# SHARED DASHBOARD SHELL
+# SHARED DASHBOARD THEME
 # ==========================================================
 
 apply_dashboard_theme()
@@ -276,7 +246,7 @@ selected_orgs = []
 if agency_col:
 
     selected_orgs = st.sidebar.multiselect(
-        "Agency",
+        "Organization",
         sorted(
             master_df[agency_col]
             .dropna()
@@ -344,7 +314,7 @@ def safe_mean(df, column):
 
 responses = len(filtered_df)
 
-agencies = (
+organizations = (
     filtered_df[agency_col].nunique()
     if agency_col else 0
 )
@@ -353,29 +323,6 @@ dmi = safe_mean(indices_df, "DMI")
 fmi = safe_mean(indices_df, "FMI")
 rri = safe_mean(indices_df, "RRI")
 dri = safe_mean(indices_df, "DRI")
-
-agency_names = (
-    ", ".join(
-        sorted(
-            [
-                str(a)
-                for a in master_df[agency_col]
-                .dropna()
-                .unique()
-            ]
-        )
-    )
-    if agency_col else "Not Available"
-)
-
-strategic_theme_groups = len(
-    THEME_DISPLAY_NAMES
-)
-
-operational_theme_count = len(
-    THEME_KEYWORDS
-)
-
 
 # ==========================================================
 # DASHBOARD STATUS BAR, BADGES AND STORY STRIP
@@ -459,27 +406,14 @@ st.markdown(f"""
 
 <ul>
 <li><b>Survey Responses:</b> {responses}</li>
-<li><b>Agencies Represented:</b> {agency_names}</li>
+<li><b>Organizations Represented:</b> KeRRA, KURA, KeNHA, KRB and MTRD</li>
 <li><b>Open-ended Questions Analysed:</b> Q27 and Q28</li>
-<li><b>Strategic Theme Groups:</b> {strategic_theme_groups}</li>
-<li><b>Operational Themes Identified:</b> {operational_theme_count}</li>
+<li><b>Themes Identified:</b> 6</li>
 <li><b>Study Focus:</b> Pavement Performance Management Under Data Constraints</li>
 </ul>
 
 </div>
 """, unsafe_allow_html=True)
-
-st.markdown(
-"""
-<div class='note-box'>
-<b>Theme Framework Note:</b>
-The six strategic theme groups are used for executive reporting and
-benchmarking. The Open Ended Insights page provides a more detailed
-breakdown into ten operational qualitative themes.
-</div>
-""",
-unsafe_allow_html=True
-)
 
 # ==========================================================
 # THEME ANALYSIS
@@ -519,35 +453,6 @@ if not theme_summary.empty:
         .iloc[0]["Theme"]
     )
 
-dominant_operational_theme = "Not Available"
-
-try:
-
-    available_text_columns = [
-        col for col in TEXT_COLUMNS
-        if col in master_df.columns
-    ]
-
-    if agency_col and available_text_columns:
-
-        operational_theme_df = build_theme_dataset(
-            df=master_df,
-            text_columns=available_text_columns,
-            agency_column=agency_col
-        )
-
-        if not operational_theme_df.empty:
-
-            dominant_operational_theme = (
-                operational_theme_df["Theme"]
-                .value_counts()
-                .idxmax()
-            )
-
-except Exception:
-
-    dominant_operational_theme = "Not Available"
-
 # ==========================================================
 # EXECUTIVE FINDINGS
 # ==========================================================
@@ -565,17 +470,12 @@ f"""
 </li>
 
 <li>
-<b>{agencies}</b> road-sector agencies were represented.
+<b>{organizations}</b> organizations were represented.
 </li>
 
 <li>
-Dominant Strategic Theme Group:
+Most frequently cited theme:
 <b>{top_theme}</b>
-</li>
-
-<li>
-Dominant Operational Theme:
-<b>{dominant_operational_theme}</b>
 </li>
 
 <li>
@@ -588,7 +488,6 @@ Respondents highlighted the need for
 improved forecasting capability,
 stronger data systems,
 capacity building,
-digital transformation,
 and evidence-based pavement management.
 </li>
 
@@ -614,7 +513,7 @@ with c1:
     st.metric("Respondents", responses)
 
 with c2:
-    st.metric("Agencies", agencies)
+    st.metric("Organizations", organizations)
 
 with c3:
     st.metric("Data Maturity Index (DMI)", dmi)
@@ -719,11 +618,7 @@ with col1:
 
 with col2:
 
-    st.markdown("### Strategic Theme Frequency Analysis")
-
-    st.caption(
-        "The six strategic theme groups shown here consolidate the ten operational themes identified in the Open Ended Insights page."
-    )
+    st.markdown("### Theme Frequency Analysis")
 
     if not theme_summary.empty:
 
@@ -756,11 +651,7 @@ with col2:
 # THEME PERCENTAGE DONUT
 # ==========================================================
 
-st.markdown("### Strategic Theme Distribution")
-
-st.caption(
-    "This donut chart shows the proportional share of the six executive-level strategic theme groups."
-)
+st.markdown("### Theme Distribution")
 
 if not theme_summary.empty:
 
@@ -981,15 +872,9 @@ st.info(f"""
 
 • Total Respondents: **{responses}**
 
-• Agencies Represented: **{agencies}**
+• Organizations Represented: **{organizations}**
 
-• Strategic Theme Groups: **{strategic_theme_groups}**
-
-• Operational Themes Identified: **{operational_theme_count}**
-
-• Dominant Strategic Theme Group: **{top_theme}**
-
-• Dominant Operational Theme: **{dominant_operational_theme}**
+• Dominant Theme: **{top_theme}**
 
 • Data Maturity Index: **{dmi}**
 
@@ -1001,18 +886,17 @@ st.info(f"""
 
 ### Interpretation
 
-The survey findings suggest that practitioners recognize the importance
-of forecasting, data-driven pavement management, institutional strengthening,
-capacity development, digital transformation and improved use of pavement
-condition data.
+The survey findings suggest that practitioners
+recognize the importance of forecasting,
+data-driven pavement management,
+institutional strengthening,
+capacity development,
+and improved use of pavement condition data.
 
-The relatively low-to-moderate Data Maturity Index and moderate Forecasting
-Maturity Index suggest opportunities for strengthening data collection systems,
-data governance and forecasting capability across road agencies.
-
-The distinction between six strategic theme groups and ten operational
-qualitative themes allows the dashboard to provide both executive-level
-summaries and detailed thematic insights.
+The relatively moderate DMI and FMI scores
+suggest opportunities for strengthening
+data collection systems and forecasting
+capabilities across road agencies.
 
 """)
 
@@ -1021,7 +905,7 @@ summaries and detailed thematic insights.
 # ==========================================================
 
 st.markdown(
-"<div class='section-title'>Strategic Theme Frequency Summary</div>",
+"<div class='section-title'>Theme Frequency Summary</div>",
 unsafe_allow_html=True
 )
 
@@ -1046,7 +930,7 @@ else:
 # ==========================================================
 
 st.markdown(
-"<div class='section-title'>Agency Benchmark Summary</div>",
+"<div class='section-title'>Organization Benchmark Summary</div>",
 unsafe_allow_html=True
 )
 
@@ -1074,10 +958,6 @@ if available_columns:
             available_columns
         ],
         use_container_width=True
-    )
-
-    st.caption(
-        "Note: Benchmark records will be refreshed after survey closure to ensure one final validated record per agency."
     )
 
 else:
@@ -1149,35 +1029,18 @@ if DEVELOPER_MODE:
         "Developer Diagnostics"
     ):
 
-        st.write(
-            "Master Columns",
-            master_df.columns
-        )
+        st.write(master_df.columns)
+        st.write(theme_df.columns)
+        st.write(indices_df.columns)
+        st.write(benchmark_df.columns)
+        st.markdown("### Index Diagnostics")
 
-        st.write(
-            "Theme Columns",
-            theme_df.columns
-        )
+diag_df = index_diagnostics(
+    indices_df
+)
 
-        st.write(
-            "Indices Columns",
-            indices_df.columns
-        )
+st.dataframe(
+    diag_df,
+    use_container_width=True
+)
 
-        st.write(
-            "Benchmark Columns",
-            benchmark_df.columns
-        )
-
-        st.markdown(
-            "### Index Diagnostics"
-        )
-
-        diag_df = index_diagnostics(
-            indices_df
-        )
-
-        st.dataframe(
-            diag_df,
-            use_container_width=True
-        )
