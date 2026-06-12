@@ -1,6 +1,6 @@
 # ==========================================================
 # BENCHMARKING AND GAP ANALYSIS
-# Sprint 3C.4 - Framework Aligned Production Version
+# Sprint 3C.4 - Polished Production Version
 # ==========================================================
 
 import streamlit as st
@@ -16,6 +16,59 @@ st.set_page_config(
     page_title="Benchmarking & Gap Analysis",
     page_icon="📊",
     layout="wide"
+)
+
+# ==========================================================
+# VISUAL STYLE SETTINGS
+# ==========================================================
+
+BAR_COLOR_SEQUENCE = px.colors.qualitative.Bold
+HEATMAP_SCALE = "YlGnBu"
+GAP_SCALE = "OrRd"
+
+# ==========================================================
+# CUSTOM CSS
+# ==========================================================
+
+st.markdown(
+    """
+<style>
+
+.section-title{
+    font-size:30px;
+    font-weight:700;
+    margin-top:25px;
+    margin-bottom:15px;
+}
+
+.insight-box{
+    border-left:6px solid #D97706;
+    background:rgba(217,119,6,0.08);
+    padding:18px;
+    border-radius:10px;
+    margin-top:15px;
+    margin-bottom:20px;
+}
+
+.note-box{
+    border-left:5px solid #2563EB;
+    background:rgba(37,99,235,0.08);
+    padding:15px;
+    border-radius:10px;
+    margin-top:10px;
+    margin-bottom:20px;
+}
+
+div[data-testid="metric-container"]{
+    border-radius:16px;
+    padding:18px;
+    border:1px solid rgba(128,128,128,0.25);
+    background:rgba(15,23,42,0.05);
+}
+
+</style>
+""",
+    unsafe_allow_html=True
 )
 
 # ==========================================================
@@ -82,10 +135,48 @@ missing_cols = [
 ]
 
 if missing_cols:
+
     st.error(
         f"Missing required columns: {missing_cols}"
     )
+
     st.stop()
+
+# ==========================================================
+# HELPER FUNCTIONS
+# ==========================================================
+
+def classify_score(score):
+
+    if pd.isna(score):
+        return "Not Available"
+
+    if score < 40:
+        return "Emerging"
+
+    if score < 60:
+        return "Developing"
+
+    if score < 80:
+        return "Advanced"
+
+    return "Leading"
+
+
+def round_columns(df, cols, decimals=1):
+
+    df = df.copy()
+
+    for col in cols:
+
+        if col in df.columns:
+
+            df[col] = pd.to_numeric(
+                df[col],
+                errors="coerce"
+            ).round(decimals)
+
+    return df
 
 # ==========================================================
 # CLEAN AND STANDARDIZE BENCHMARK DATA
@@ -127,12 +218,19 @@ benchmark_df = benchmark_df.dropna(
     ]
 )
 
+if benchmark_df.empty:
+
+    st.warning(
+        "No valid benchmark records were found."
+    )
+
+    st.stop()
+
 # ----------------------------------------------------------
-# IMPORTANT:
 # Display-level de-duplication only.
 # This keeps one benchmark row per agency on the dashboard.
-# The final benchmark dataset will still be regenerated
-# after survey closure and final validation.
+# Final benchmark dataset will be regenerated after survey
+# closure and final validation.
 # ----------------------------------------------------------
 
 benchmark_df = (
@@ -150,12 +248,18 @@ benchmark_df = (
     .reset_index(drop=True)
 )
 
-# ----------------------------------------------------------
-# Recalculate display rank using one row per agency.
-# ----------------------------------------------------------
-
 benchmark_df["Display_Rank"] = (
     benchmark_df.index + 1
+)
+
+benchmark_df["Benchmark Band"] = benchmark_df["Overall_Score"].apply(
+    classify_score
+)
+
+benchmark_df = round_columns(
+    benchmark_df,
+    numeric_cols,
+    decimals=1
 )
 
 agency_count = benchmark_df["Agency"].nunique()
@@ -169,17 +273,21 @@ st.title(
 )
 
 st.markdown("""
-This page benchmarks participating agencies across maturity
-indices and strategic capability dimensions, highlighting
-performance gaps and priority improvement areas.
+This page benchmarks participating agencies across maturity indices and
+strategic capability dimensions, highlighting performance gaps and priority
+improvement areas.
 """)
 
-st.caption(
+st.markdown(
     """
-    Note: Current benchmarking outputs use the available benchmark dataset.
-    Final rankings, scores and agency-level gaps will be refreshed after
-    survey closure and final dataset validation.
-    """
+<div class="note-box">
+<b>Benchmarking Note:</b>
+Current benchmarking outputs use the available benchmark dataset. Final
+rankings, scores and agency-level gaps will be refreshed after survey closure
+and final dataset validation.
+</div>
+""",
+    unsafe_allow_html=True
 )
 
 # ==========================================================
@@ -188,18 +296,28 @@ st.caption(
 
 highest = round(
     benchmark_df["Overall_Score"].max(),
-    2
+    1
 )
 
 lowest = round(
     benchmark_df["Overall_Score"].min(),
-    2
+    1
 )
 
 average = round(
     benchmark_df["Overall_Score"].mean(),
-    2
+    1
 )
+
+highest_agency = benchmark_df.loc[
+    benchmark_df["Overall_Score"].idxmax(),
+    "Agency"
+]
+
+lowest_agency = benchmark_df.loc[
+    benchmark_df["Overall_Score"].idxmin(),
+    "Agency"
+]
 
 c1, c2, c3, c4 = st.columns(4)
 
@@ -224,11 +342,37 @@ c4.metric(
 )
 
 # ==========================================================
+# BENCHMARK SNAPSHOT
+# ==========================================================
+
+st.markdown(
+    f"""
+<div class="insight-box">
+
+<b>Benchmark Snapshot:</b><br>
+A total of <b>{agency_count}</b> agencies were benchmarked.
+
+<br><br>
+The current benchmark leader is <b>{highest_agency}</b> with an overall score
+of <b>{highest}</b>. The lowest current overall score is recorded by
+<b>{lowest_agency}</b> with an overall score of <b>{lowest}</b>.
+
+<br><br>
+The current sector average benchmark score is <b>{average}</b>. These figures
+will be refreshed after survey closure and final validation of the dataset.
+
+</div>
+""",
+    unsafe_allow_html=True
+)
+
+# ==========================================================
 # AGENCY BENCHMARK RANKING
 # ==========================================================
 
 st.markdown(
-    "## Agency Benchmark Ranking"
+    "<div class='section-title'>Agency Benchmark Ranking</div>",
+    unsafe_allow_html=True
 )
 
 ranking_df = benchmark_df[
@@ -236,6 +380,7 @@ ranking_df = benchmark_df[
         "Display_Rank",
         "Agency",
         "Overall_Score",
+        "Benchmark Band",
         "DMI",
         "FMI",
         "RRI",
@@ -260,7 +405,8 @@ st.dataframe(
 # ==========================================================
 
 st.markdown(
-    "## Overall Readiness Ranking"
+    "<div class='section-title'>Overall Readiness Ranking</div>",
+    unsafe_allow_html=True
 )
 
 fig_rank = px.bar(
@@ -272,17 +418,27 @@ fig_rank = px.bar(
     y="Agency",
     orientation="h",
     text="Overall Score",
+    color="Agency",
+    color_discrete_sequence=BAR_COLOR_SEQUENCE,
     title="Overall Agency Ranking"
 )
 
 fig_rank.update_layout(
     xaxis_title="Overall Score",
-    yaxis_title="Agency"
+    yaxis_title="Agency",
+    xaxis=dict(
+        range=[
+            0,
+            100
+        ]
+    ),
+    height=520,
+    showlegend=False
 )
 
 fig_rank.update_traces(
     texttemplate="%{text:.1f}",
-    textposition="inside"
+    textposition="outside"
 )
 
 st.plotly_chart(
@@ -295,7 +451,8 @@ st.plotly_chart(
 # ==========================================================
 
 st.markdown(
-    "## Maturity Radar Comparison"
+    "<div class='section-title'>Maturity Radar Comparison</div>",
+    unsafe_allow_html=True
 )
 
 fig_radar = go.Figure()
@@ -312,7 +469,6 @@ for _, row in benchmark_df.iterrows():
         for col in INDEX_COLS
     ]
 
-    # Close the radar shape
     radar_values.append(
         radar_values[0]
     )
@@ -356,7 +512,8 @@ st.plotly_chart(
 if available_strategic_cols:
 
     st.markdown(
-        "## Strategic Dimension Benchmark"
+        "<div class='section-title'>Strategic Dimension Benchmark</div>",
+        unsafe_allow_html=True
     )
 
     strategic_df = benchmark_df[
@@ -371,6 +528,15 @@ if available_strategic_cols:
         columns=STRATEGIC_LABELS
     )
 
+    strategic_df = round_columns(
+        strategic_df,
+        [
+            col for col in strategic_df.columns
+            if col != "Agency"
+        ],
+        decimals=1
+    )
+
     strategic_df = strategic_df.set_index(
         "Agency"
     )
@@ -378,7 +544,15 @@ if available_strategic_cols:
     fig_heat = px.imshow(
         strategic_df,
         aspect="auto",
-        title="Strategic Capability Benchmark"
+        title="Strategic Capability Benchmark",
+        labels=dict(
+            x="Strategic Capability Dimension",
+            y="Agency",
+            color="Score"
+        ),
+        color_continuous_scale=HEATMAP_SCALE,
+        zmin=0,
+        zmax=100
     )
 
     fig_heat.update_layout(
@@ -397,7 +571,8 @@ if available_strategic_cols:
 # ==========================================================
 
 st.markdown(
-    "## Gap Analysis"
+    "<div class='section-title'>Gap Analysis</div>",
+    unsafe_allow_html=True
 )
 
 gap_df = benchmark_df[
@@ -414,7 +589,7 @@ for col in INDEX_COLS:
         benchmark_df[col].max()
         -
         benchmark_df[col]
-    ).round(2)
+    ).round(1)
 
 gap_df = gap_df.rename(
     columns=INDEX_LABELS
@@ -427,7 +602,13 @@ gap_matrix = gap_df.set_index(
 fig_gap = px.imshow(
     gap_matrix,
     aspect="auto",
-    title="Maturity Gap Analysis"
+    title="Maturity Gap Analysis",
+    labels=dict(
+        x="Maturity Dimension",
+        y="Agency",
+        color="Gap"
+    ),
+    color_continuous_scale=GAP_SCALE
 )
 
 fig_gap.update_layout(
@@ -446,7 +627,8 @@ st.plotly_chart(
 # ==========================================================
 
 st.markdown(
-    "## Priority Improvement Areas"
+    "<div class='section-title'>Priority Improvement Areas</div>",
+    unsafe_allow_html=True
 )
 
 priority_rows = []
@@ -475,6 +657,44 @@ st.dataframe(
     priority_df,
     use_container_width=True
 )
+
+# ==========================================================
+# DETAILED BENCHMARK TABLES
+# ==========================================================
+
+with st.expander(
+    "View Detailed Benchmark Tables",
+    expanded=False
+):
+
+    st.markdown(
+        "### Full Benchmark Ranking"
+    )
+
+    st.dataframe(
+        ranking_df,
+        use_container_width=True
+    )
+
+    st.markdown(
+        "### Maturity Gap Matrix"
+    )
+
+    st.dataframe(
+        gap_matrix,
+        use_container_width=True
+    )
+
+    if available_strategic_cols:
+
+        st.markdown(
+            "### Strategic Capability Matrix"
+        )
+
+        st.dataframe(
+            strategic_df,
+            use_container_width=True
+        )
 
 # ==========================================================
 # EXECUTIVE INTERPRETATION
@@ -509,18 +729,18 @@ st.info(f"""
 
 A total of **{agency_count} agencies** were benchmarked.
 
-The highest performing agency was **{best_agency}**
-with an overall score of **{best_score:.2f}**.
+The highest performing agency was **{best_agency}** with an overall score of
+**{best_score:.1f}**.
 
-The lowest overall score was recorded by **{lowest_agency}**
-with a score of **{lowest_score:.2f}**.
+The lowest overall score was recorded by **{lowest_agency}** with a score of
+**{lowest_score:.1f}**.
 
-The gap analysis indicates that **{largest_gap_dimension}**
-has the largest average benchmark gap across agencies.
+The gap analysis indicates that **{largest_gap_dimension}** has the largest
+average benchmark gap across agencies.
 
-The radar and gap analyses identify maturity differences across
-agencies and highlight areas requiring targeted intervention.
+The radar and gap analyses identify maturity differences across agencies and
+highlight areas requiring targeted intervention.
 
-Improvement efforts should focus on the lowest-scoring dimensions
-within each agency to accelerate overall asset management maturity.
+Improvement efforts should focus on the lowest-scoring dimensions within each
+agency to accelerate overall asset management maturity.
 """)
