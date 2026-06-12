@@ -1,6 +1,6 @@
 # ==========================================================
 # PAVEMENT PERFORMANCE MANAGEMENT DASHBOARD
-# EXECUTIVE DASHBOARD - FULL RESEARCH OVERVIEW VERSION
+# EXECUTIVE DASHBOARD - FULL RESEARCH OVERVIEW POLISHED VERSION
 #
 # Research:
 # Pavement Performance Management Under Data Constraints
@@ -9,7 +9,8 @@
 # Purpose:
 # This page provides a high-level overview of the full study:
 # respondent profile, maturity indices, survey domains,
-# benchmarking, qualitative insights, and strategic priorities.
+# benchmarking, qualitative insights, dataset health and
+# strategic priorities.
 # ==========================================================
 
 # ==========================================================
@@ -97,6 +98,14 @@ INDEX_LABELS = {
 }
 
 # ==========================================================
+# VISUAL STYLE SETTINGS
+# ==========================================================
+
+COLOR_SEQUENCE = px.colors.qualitative.Set2
+ALT_COLOR_SEQUENCE = px.colors.qualitative.Pastel
+THEME_COLOR_SEQUENCE = px.colors.qualitative.Bold
+
+# ==========================================================
 # CUSTOM CSS
 # ==========================================================
 
@@ -166,6 +175,15 @@ div[data-testid="metric-container"]{
     background:rgba(37,99,235,0.08);
     padding:15px;
     border-radius:10px;
+    margin-top:10px;
+    margin-bottom:20px;
+}
+
+.theme-highlight-box{
+    border-left:5px solid #7C3AED;
+    background:rgba(124,58,237,0.08);
+    padding:18px;
+    border-radius:12px;
     margin-top:10px;
     margin-bottom:20px;
 }
@@ -343,7 +361,28 @@ def gauge_chart(title, value):
             gauge={
                 "axis": {
                     "range": [0, 100]
-                }
+                },
+                "bar": {
+                    "color": "#2563EB"
+                },
+                "steps": [
+                    {
+                        "range": [0, 40],
+                        "color": "#FEE2E2"
+                    },
+                    {
+                        "range": [40, 60],
+                        "color": "#FEF3C7"
+                    },
+                    {
+                        "range": [60, 80],
+                        "color": "#DBEAFE"
+                    },
+                    {
+                        "range": [80, 100],
+                        "color": "#DCFCE7"
+                    }
+                ]
             }
         )
     )
@@ -353,6 +392,22 @@ def gauge_chart(title, value):
     )
 
     return fig
+
+
+def round_display_columns(df, columns, decimals=1):
+
+    df = df.copy()
+
+    for col in columns:
+
+        if col in df.columns:
+
+            df[col] = pd.to_numeric(
+                df[col],
+                errors="coerce"
+            ).round(decimals)
+
+    return df
 
 # ==========================================================
 # PREPARE ANALYSIS DATA
@@ -551,6 +606,12 @@ if "Agency" in benchmark_df.columns and "Overall_Score" in benchmark_df.columns:
         benchmark_display_df.index + 1
     )
 
+    benchmark_display_df = round_display_columns(
+        benchmark_display_df,
+        benchmark_numeric_cols,
+        decimals=1
+    )
+
 else:
 
     benchmark_display_df = pd.DataFrame()
@@ -564,7 +625,7 @@ if not benchmark_display_df.empty:
 
     average_overall_score = round(
         benchmark_display_df["Overall_Score"].mean(),
-        2
+        1
     )
 
     top_agency = benchmark_display_df.loc[
@@ -772,7 +833,7 @@ readiness in that dimension.
 <li>
 The current benchmark leader is
 <b>{top_agency}</b> with an overall score of
-<b>{top_score:.2f}</b>.
+<b>{top_score:.1f}</b>.
 </li>
 
 <li>
@@ -873,6 +934,8 @@ fig_maturity = px.bar(
     y="Maturity Dimension",
     orientation="h",
     text="Score",
+    color="Maturity Dimension",
+    color_discrete_sequence=COLOR_SEQUENCE,
     title="National Maturity Overview"
 )
 
@@ -885,7 +948,8 @@ fig_maturity.update_layout(
             100
         ]
     ),
-    height=450
+    height=450,
+    showlegend=False
 )
 
 fig_maturity.update_traces(
@@ -1030,7 +1094,7 @@ b3.metric(
     "Highest Score",
     round(
         top_score,
-        2
+        1
     )
 )
 
@@ -1038,7 +1102,7 @@ b4.metric(
     "Lowest Score",
     round(
         lowest_score,
-        2
+        1
     )
 )
 
@@ -1105,7 +1169,8 @@ with col1:
         names="Agency",
         values="Responses",
         hole=0.55,
-        title="Distribution of Responses by Agency"
+        title="Distribution of Responses by Agency",
+        color_discrete_sequence=ALT_COLOR_SEQUENCE
     )
 
     fig_agency.update_layout(
@@ -1141,11 +1206,16 @@ with col2:
             x="Responses",
             y="Work Level",
             orientation="h",
+            color="Work Level",
+            color_discrete_sequence=COLOR_SEQUENCE,
             title="Respondents by Work Level"
         )
 
         fig_level.update_layout(
-            height=450
+            height=450,
+            showlegend=False,
+            xaxis_title="Responses",
+            yaxis_title="Work Level"
         )
 
         st.plotly_chart(
@@ -1162,7 +1232,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-q1, q2, q3 = st.columns(3)
+q1, q2 = st.columns(2)
 
 q1.metric(
     "Strategic Theme Groups",
@@ -1174,9 +1244,14 @@ q2.metric(
     operational_theme_count
 )
 
-q3.metric(
-    "Dominant Operational Theme",
-    dominant_operational_theme
+st.markdown(
+    f"""
+<div class='theme-highlight-box'>
+<b>Dominant Operational Theme:</b>
+{dominant_operational_theme}
+</div>
+""",
+    unsafe_allow_html=True
 )
 
 st.markdown(
@@ -1213,13 +1288,16 @@ if not strategic_theme_summary.empty:
             x="Mentions",
             y="Theme",
             orientation="h",
+            color="Theme",
+            color_discrete_sequence=THEME_COLOR_SEQUENCE,
             title="Strategic Theme Group Mentions"
         )
 
         fig_theme.update_layout(
             height=450,
             xaxis_title="Mentions",
-            yaxis_title="Strategic Theme Group"
+            yaxis_title="Strategic Theme Group",
+            showlegend=False
         )
 
         st.plotly_chart(
@@ -1252,7 +1330,8 @@ if not strategic_theme_summary.empty:
                 names="Theme",
                 values="Percentage",
                 hole=0.60,
-                title="Strategic Theme Group Share"
+                title="Strategic Theme Group Share",
+                color_discrete_sequence=THEME_COLOR_SEQUENCE
             )
 
             fig_theme_pct.update_layout(
@@ -1265,49 +1344,17 @@ if not strategic_theme_summary.empty:
             )
 
 # ==========================================================
-# EXECUTIVE INTERPRETATION
-# ==========================================================
-
-st.markdown(
-    "<div class='section-title'>Executive Interpretation</div>",
-    unsafe_allow_html=True
-)
-
-st.info(f"""
-### Overall Research Interpretation
-
-The survey assessed pavement performance management under data constraints
-across **{agencies} participating road-sector agencies** and **{responses}
-practitioner responses**.
-
-The quantitative results show that **{weakest_maturity_area}** is the main
-priority improvement area, while **{strongest_maturity_area}** is the strongest
-maturity dimension.
-
-The benchmarking results currently identify **{top_agency}** as the leading
-agency, with an overall benchmark score of **{top_score:.2f}**. Final rankings
-will be refreshed after the survey closes and the validated dataset is updated.
-
-The question-level analysis explains the maturity results by examining data
-practices, forecasting practices, reconstruction and modelling readiness, and
-digital readiness across agencies.
-
-The qualitative findings from Q27 and Q28 provide additional context by showing
-that practitioners emphasize digital transformation, stronger data systems,
-forecasting capability, capacity building, funding, institutional coordination
-and evidence-based road asset management.
-
-Overall, the dashboard provides a decision-support framework for identifying
-sector-wide maturity gaps, agency-level priorities and practical improvement
-pathways for pavement performance management in Kenya.
-""")
-
-# ==========================================================
 # DATASET HEALTH
 # ==========================================================
 
+st.markdown(
+    "<div class='section-title'>Dataset Health</div>",
+    unsafe_allow_html=True
+)
+
 with st.expander(
-    "Dataset Health"
+    "View Dataset Health and Data Quality Summary",
+    expanded=False
 ):
 
     health_df = pd.DataFrame({
@@ -1353,6 +1400,44 @@ with st.expander(
         dq_df,
         use_container_width=True
     )
+
+# ==========================================================
+# EXECUTIVE INTERPRETATION
+# ==========================================================
+
+st.markdown(
+    "<div class='section-title'>Executive Interpretation</div>",
+    unsafe_allow_html=True
+)
+
+st.info(f"""
+### Overall Research Interpretation
+
+The survey assessed pavement performance management under data constraints
+across **{agencies} participating road-sector agencies** and **{responses}
+practitioner responses**.
+
+The quantitative results show that **{weakest_maturity_area}** is the main
+priority improvement area, while **{strongest_maturity_area}** is the strongest
+maturity dimension.
+
+The benchmarking results currently identify **{top_agency}** as the leading
+agency, with an overall benchmark score of **{top_score:.1f}**. Final rankings
+will be refreshed after the survey closes and the validated dataset is updated.
+
+The question-level analysis explains the maturity results by examining data
+practices, forecasting practices, reconstruction and modelling readiness, and
+digital readiness across agencies.
+
+The qualitative findings from Q27 and Q28 provide additional context by showing
+that practitioners emphasize digital transformation, stronger data systems,
+forecasting capability, capacity building, funding, institutional coordination
+and evidence-based road asset management.
+
+Overall, the dashboard provides a decision-support framework for identifying
+sector-wide maturity gaps, agency-level priorities and practical improvement
+pathways for pavement performance management in Kenya.
+""")
 
 # ==========================================================
 # DEVELOPER DIAGNOSTICS
