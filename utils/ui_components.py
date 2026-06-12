@@ -1,23 +1,64 @@
 # ==========================================================
 # SHARED UI COMPONENTS
 # Professional Research Analytics Dashboard Theme
+#
+# Save this file as:
+# utils/ui_components.py
 # ==========================================================
 
 import html
 import streamlit as st
 
 
+def _safe(value):
+    """Safely convert any value to escaped text for HTML rendering."""
+    return html.escape(str(value))
+
+
 def apply_dashboard_theme():
     """
-    Applies a reusable dashboard shell/theme across pages.
-    Place this near the top of every Streamlit page after st.set_page_config().
+    Applies the shared dashboard shell/theme.
+    Call this after st.set_page_config() and after any page-specific CSS.
     """
 
     st.markdown(
         """
 <style>
 
-/* GLOBAL APP SHELL */
+/* ==========================================================
+   STREAMLIT HEADER / WHITE STRIP FIX
+   ========================================================== */
+
+html, body, [data-testid="stAppViewContainer"] {
+    background: #07111F !important;
+}
+
+header[data-testid="stHeader"] {
+    background: #07111F !important;
+}
+
+div[data-testid="stToolbar"] {
+    visibility: hidden !important;
+    height: 0rem !important;
+    position: fixed !important;
+}
+
+div[data-testid="stDecoration"] {
+    display: none !important;
+}
+
+#MainMenu {
+    visibility: hidden !important;
+}
+
+footer {
+    visibility: hidden !important;
+}
+
+/* ==========================================================
+   GLOBAL APP SHELL
+   ========================================================== */
+
 .stApp {
     background:
         radial-gradient(circle at top left, rgba(37,99,235,0.16), transparent 26%),
@@ -27,12 +68,15 @@ def apply_dashboard_theme():
 }
 
 .block-container {
-    padding-top: 1.4rem;
+    padding-top: 1.1rem;
     padding-bottom: 3rem;
     max-width: 1480px;
 }
 
-/* SIDEBAR */
+/* ==========================================================
+   SIDEBAR
+   ========================================================== */
+
 section[data-testid="stSidebar"] {
     background: linear-gradient(180deg, #07111F 0%, #0B1220 100%);
     border-right: 1px solid rgba(148,163,184,0.20);
@@ -42,11 +86,10 @@ section[data-testid="stSidebar"] * {
     color: #CBD5E1;
 }
 
-section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p {
-    color: #CBD5E1;
-}
+/* ==========================================================
+   TYPOGRAPHY
+   ========================================================== */
 
-/* TYPOGRAPHY */
 h1, h2, h3, h4 {
     color: #F8FAFC;
     letter-spacing: -0.02em;
@@ -60,16 +103,19 @@ hr {
     border-color: rgba(148,163,184,0.20);
 }
 
-/* TOP STATUS BAR */
+/* ==========================================================
+   TOP STATUS BAR
+   ========================================================== */
+
 .dashboard-topbar {
     display:flex;
     justify-content:space-between;
-    align-items:center;
+    align-items:flex-start;
     gap:12px;
     padding:12px 14px;
     border:1px solid rgba(148,163,184,0.22);
     border-radius:16px;
-    background:rgba(15,23,42,0.86);
+    background:rgba(15,23,42,0.90);
     box-shadow:0 12px 32px rgba(0,0,0,0.22);
     margin-bottom:16px;
 }
@@ -79,6 +125,7 @@ hr {
     flex-wrap:wrap;
     gap:8px;
     align-items:center;
+    flex:1;
 }
 
 .dashboard-chip {
@@ -87,11 +134,12 @@ hr {
     gap:7px;
     padding:7px 10px;
     border-radius:999px;
-    background:rgba(30,41,59,0.92);
-    border:1px solid rgba(148,163,184,0.22);
+    background:rgba(30,41,59,0.94);
+    border:1px solid rgba(148,163,184,0.24);
     font-size:13px;
     font-weight:600;
     color:#E2E8F0;
+    white-space:nowrap;
 }
 
 .dashboard-chip strong {
@@ -102,6 +150,7 @@ hr {
     display:flex;
     gap:8px;
     align-items:center;
+    flex-shrink:0;
 }
 
 .dashboard-action {
@@ -111,13 +160,16 @@ hr {
     align-items:center;
     justify-content:center;
     border-radius:10px;
-    background:rgba(30,41,59,0.90);
+    background:rgba(30,41,59,0.94);
     border:1px solid rgba(148,163,184,0.25);
     color:#E5E7EB;
     font-size:15px;
 }
 
-/* HERO */
+/* ==========================================================
+   HERO
+   ========================================================== */
+
 .hero-badge {
     background:rgba(217,119,6,0.12) !important;
     border:1px solid rgba(217,119,6,0.65) !important;
@@ -138,7 +190,10 @@ hr {
     color:#CBD5E1 !important;
 }
 
-/* BADGES AND STORY STRIP */
+/* ==========================================================
+   BADGES AND STORY STRIP
+   ========================================================== */
+
 .badge-row {
     display:flex;
     flex-wrap:wrap;
@@ -211,7 +266,10 @@ hr {
     line-height:1.35;
 }
 
-/* CARDS, METRICS AND WIDGETS */
+/* ==========================================================
+   CARDS, METRICS AND WIDGETS
+   ========================================================== */
+
 div[data-testid="metric-container"] {
     background:rgba(15,23,42,0.86) !important;
     border:1px solid rgba(148,163,184,0.22) !important;
@@ -285,14 +343,15 @@ div[data-testid="metric-container"] [data-testid="stMetricValue"] {
     overflow:hidden;
 }
 
-/* ALERTS */
 [data-testid="stAlert"] {
     border-radius:16px;
     border:1px solid rgba(148,163,184,0.22);
-    background:rgba(15,23,42,0.78);
 }
 
-/* RESPONSIVE */
+/* ==========================================================
+   RESPONSIVE
+   ========================================================== */
+
 @media (max-width: 900px) {
     .dashboard-topbar {
         flex-direction:column;
@@ -311,31 +370,79 @@ div[data-testid="metric-container"] [data-testid="stMetricValue"] {
 
 
 def render_top_status_bar(
+    items=None,
     dataset_status="Interim Dataset",
     responses=None,
     agencies=None,
     theme_framework="Aligned",
-    refresh_status="Final Refresh Pending"
+    refresh_status="Final Refresh Pending",
+    show_actions=True
 ):
-    response_text = "N/A" if responses is None else f"{responses}"
-    agency_text = "N/A" if agencies is None else f"{agencies}"
+    """
+    Render a flexible top status bar.
+
+    Supports BOTH formats:
+
+    1. New format:
+       render_top_status_bar([
+           ("📦", "Dataset", "Interim Dataset"),
+           ("👥", "Responses", 81)
+       ])
+
+    2. Old format:
+       render_top_status_bar(
+           dataset_status="Interim Dataset",
+           responses=81,
+           agencies=5
+       )
+    """
+
+    if items is None:
+        response_text = "N/A" if responses is None else responses
+        agency_text = "N/A" if agencies is None else agencies
+
+        items = [
+            ("📦", "Dataset", dataset_status),
+            ("👥", "Responses", response_text),
+            ("🏢", "Agencies", agency_text),
+            ("🧩", "Themes", theme_framework),
+            ("🔄", "Status", refresh_status)
+        ]
+
+    chip_html = ""
+
+    for item in items:
+        if len(item) == 3:
+            icon, label, value = item
+        else:
+            icon, label, value = "•", "Item", item
+
+        chip_html += (
+            '<div class="dashboard-chip">'
+            f'{_safe(icon)} {_safe(label)}: '
+            f'<strong>{_safe(value)}</strong>'
+            '</div>'
+        )
+
+    actions_html = ""
+
+    if show_actions:
+        actions_html = """
+<div class="dashboard-actions">
+    <div class="dashboard-action" title="Settings">⚙</div>
+    <div class="dashboard-action" title="Refresh pending">↻</div>
+    <div class="dashboard-action" title="Export ready">⇩</div>
+    <div class="dashboard-action" title="Method notes">ⓘ</div>
+</div>
+"""
 
     st.markdown(
         f"""
 <div class="dashboard-topbar">
     <div class="dashboard-topbar-left">
-        <div class="dashboard-chip">📦 Dataset: <strong>{html.escape(dataset_status)}</strong></div>
-        <div class="dashboard-chip">👥 Responses: <strong>{html.escape(response_text)}</strong></div>
-        <div class="dashboard-chip">🏢 Agencies: <strong>{html.escape(agency_text)}</strong></div>
-        <div class="dashboard-chip">🧩 Themes: <strong>{html.escape(theme_framework)}</strong></div>
-        <div class="dashboard-chip">🔄 Status: <strong>{html.escape(refresh_status)}</strong></div>
+        {chip_html}
     </div>
-    <div class="dashboard-actions">
-        <div class="dashboard-action" title="Settings">⚙</div>
-        <div class="dashboard-action" title="Refresh pending">↻</div>
-        <div class="dashboard-action" title="Export ready">⇩</div>
-        <div class="dashboard-action" title="Method notes">ⓘ</div>
-    </div>
+    {actions_html}
 </div>
 """,
         unsafe_allow_html=True
@@ -352,7 +459,6 @@ def render_status_badges(badges):
     colour_cycle = ["blue", "green", "amber", "purple"]
 
     for i, badge in enumerate(badges):
-
         if isinstance(badge, tuple):
             text, colour = badge
         else:
@@ -360,8 +466,8 @@ def render_status_badges(badges):
             colour = colour_cycle[i % len(colour_cycle)]
 
         badge_html += (
-            f'<span class="status-badge {html.escape(colour)}">'
-            f'{html.escape(str(text))}</span>'
+            f'<span class="status-badge {_safe(colour)}">'
+            f'{_safe(text)}</span>'
         )
 
     st.markdown(
@@ -376,15 +482,15 @@ def render_story_strip(domain, evidence, decision_use):
 <div class="story-strip">
     <div class="story-item">
         <div class="story-label">Research Domain</div>
-        <div class="story-value">{html.escape(domain)}</div>
+        <div class="story-value">{_safe(domain)}</div>
     </div>
     <div class="story-item">
         <div class="story-label">Evidence Base</div>
-        <div class="story-value">{html.escape(evidence)}</div>
+        <div class="story-value">{_safe(evidence)}</div>
     </div>
     <div class="story-item">
         <div class="story-label">Decision Use</div>
-        <div class="story-value">{html.escape(decision_use)}</div>
+        <div class="story-value">{_safe(decision_use)}</div>
     </div>
 </div>
 """,
