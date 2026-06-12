@@ -1,6 +1,7 @@
 # ==========================================================
 # BENCHMARKING AND GAP ANALYSIS
-# Sprint 3C.4 - Polished Production Version
+# Sprint 3C.4 - Polished Production Version V2
+# Strategic Capability Visual Improved
 # ==========================================================
 
 import streamlit as st
@@ -23,7 +24,8 @@ st.set_page_config(
 # ==========================================================
 
 BAR_COLOR_SEQUENCE = px.colors.qualitative.Bold
-HEATMAP_SCALE = "YlGnBu"
+STRATEGIC_COLOR_SEQUENCE = px.colors.qualitative.Set2
+HEATMAP_SCALE = "Viridis"
 GAP_SCALE = "OrRd"
 
 # ==========================================================
@@ -177,6 +179,23 @@ def round_columns(df, cols, decimals=1):
             ).round(decimals)
 
     return df
+
+
+def shorten_dimension(label):
+
+    label_map = {
+        "Data Systems & Databases": "Data Systems",
+        "Routine Data Collection": "Data Collection",
+        "Forecasting, AI & Analytics": "Forecasting & AI",
+        "Capacity Building & Training": "Capacity Building",
+        "Institutional Coordination & Policy": "Institutional Coordination",
+        "Funding & Resource Allocation": "Funding"
+    }
+
+    return label_map.get(
+        label,
+        label
+    )
 
 # ==========================================================
 # CLEAN AND STANDARDIZE BENCHMARK DATA
@@ -537,28 +556,112 @@ if available_strategic_cols:
         decimals=1
     )
 
-    strategic_df = strategic_df.set_index(
+    strategic_long_df = strategic_df.melt(
+        id_vars="Agency",
+        var_name="Strategic Capability Dimension",
+        value_name="Score"
+    )
+
+    strategic_long_df["Short Dimension"] = strategic_long_df[
+        "Strategic Capability Dimension"
+    ].apply(
+        shorten_dimension
+    )
+
+    st.markdown(
+        """
+<div class="note-box">
+<b>Strategic Capability View:</b>
+The grouped bar chart below is used as the primary visual because it is easier
+to compare agencies and capability dimensions than a low-contrast heatmap.
+The heatmap is retained below as a compact scorecard.
+</div>
+""",
+        unsafe_allow_html=True
+    )
+
+    fig_strategic_bar = px.bar(
+        strategic_long_df,
+        x="Score",
+        y="Agency",
+        color="Short Dimension",
+        barmode="group",
+        text="Score",
+        orientation="h",
+        title="Strategic Capability Scores by Agency",
+        color_discrete_sequence=STRATEGIC_COLOR_SEQUENCE
+    )
+
+    fig_strategic_bar.update_layout(
+        height=720,
+        xaxis_title="Strategic Capability Score",
+        yaxis_title="Agency",
+        xaxis=dict(
+            range=[
+                0,
+                max(
+                    10,
+                    strategic_long_df["Score"].max() * 1.20
+                )
+            ]
+        ),
+        legend_title_text="Strategic Capability"
+    )
+
+    fig_strategic_bar.update_traces(
+        texttemplate="%{text:.1f}",
+        textposition="outside"
+    )
+
+    st.plotly_chart(
+        fig_strategic_bar,
+        use_container_width=True
+    )
+
+    strategic_heatmap_df = strategic_df.copy()
+
+    strategic_heatmap_df = strategic_heatmap_df.set_index(
         "Agency"
     )
 
+    strategic_heatmap_df = strategic_heatmap_df.rename(
+        columns={
+            col: shorten_dimension(col)
+            for col in strategic_heatmap_df.columns
+        }
+    )
+
+    strategic_min = strategic_heatmap_df.min().min()
+    strategic_max = strategic_heatmap_df.max().max()
+
+    if pd.isna(strategic_min) or pd.isna(strategic_max) or strategic_min == strategic_max:
+
+        strategic_min = 0
+        strategic_max = 100
+
     fig_heat = px.imshow(
-        strategic_df,
+        strategic_heatmap_df,
         aspect="auto",
-        title="Strategic Capability Benchmark",
+        title="Strategic Capability Scorecard",
         labels=dict(
             x="Strategic Capability Dimension",
             y="Agency",
             color="Score"
         ),
         color_continuous_scale=HEATMAP_SCALE,
-        zmin=0,
-        zmax=100
+        zmin=strategic_min,
+        zmax=strategic_max,
+        text_auto=".1f"
     )
 
     fig_heat.update_layout(
-        height=700,
+        height=620,
         xaxis_title="Strategic Capability Dimension",
         yaxis_title="Agency"
+    )
+
+    fig_heat.update_xaxes(
+        tickangle=25
     )
 
     st.plotly_chart(
@@ -608,7 +711,8 @@ fig_gap = px.imshow(
         y="Agency",
         color="Gap"
     ),
-    color_continuous_scale=GAP_SCALE
+    color_continuous_scale=GAP_SCALE,
+    text_auto=".1f"
 )
 
 fig_gap.update_layout(
@@ -692,7 +796,7 @@ with st.expander(
         )
 
         st.dataframe(
-            strategic_df,
+            strategic_heatmap_df,
             use_container_width=True
         )
 
@@ -738,8 +842,8 @@ The lowest overall score was recorded by **{lowest_agency}** with a score of
 The gap analysis indicates that **{largest_gap_dimension}** has the largest
 average benchmark gap across agencies.
 
-The radar and gap analyses identify maturity differences across agencies and
-highlight areas requiring targeted intervention.
+The radar, strategic capability and gap analyses identify maturity differences
+across agencies and highlight areas requiring targeted intervention.
 
 Improvement efforts should focus on the lowest-scoring dimensions within each
 agency to accelerate overall asset management maturity.
