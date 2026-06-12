@@ -319,6 +319,9 @@ organizations = (
     if agency_col else 0
 )
 
+# Alias used by the dashboard status bar.
+agencies = organizations
+
 dmi = safe_mean(indices_df, "DMI")
 fmi = safe_mean(indices_df, "FMI")
 rri = safe_mean(indices_df, "RRI")
@@ -331,7 +334,7 @@ dri = safe_mean(indices_df, "DRI")
 render_top_status_bar(
     dataset_status="Interim Dataset",
     responses=responses,
-    agencies=agencies,
+    agencies=organizations,
     theme_framework="Aligned",
     refresh_status="Final Refresh Pending"
 )
@@ -470,7 +473,7 @@ f"""
 </li>
 
 <li>
-<b>{organizations}</b> organizations were represented.
+<b>{organizations}</b> agencies were represented.
 </li>
 
 <li>
@@ -513,7 +516,7 @@ with c1:
     st.metric("Respondents", responses)
 
 with c2:
-    st.metric("Organizations", organizations)
+    st.metric("Agencies", organizations)
 
 with c3:
     st.metric("Data Maturity Index (DMI)", dmi)
@@ -872,7 +875,7 @@ st.info(f"""
 
 • Total Respondents: **{responses}**
 
-• Organizations Represented: **{organizations}**
+• Agencies Represented: **{organizations}**
 
 • Dominant Theme: **{top_theme}**
 
