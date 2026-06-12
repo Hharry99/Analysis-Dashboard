@@ -1,6 +1,7 @@
 # ==========================================================
 # STRATEGIC ROADMAP
-# Sprint 3D.1 - Polished Production Version
+# Sprint 3D.1 - Polished Production Version V2
+# Roadmap Cards Rendering Fixed
 # ==========================================================
 
 import html
@@ -23,6 +24,7 @@ st.set_page_config(
 # ==========================================================
 
 BAR_COLOR_SEQUENCE = px.colors.qualitative.Bold
+
 ROADMAP_COLORS = {
     "short": "#2563EB",
     "medium": "#D97706",
@@ -62,32 +64,6 @@ st.markdown(
     margin-bottom:20px;
 }
 
-.roadmap-card{
-    border-radius:14px;
-    border:1px solid rgba(128,128,128,0.25);
-    padding:18px;
-    min-height:310px;
-    background:rgba(15,23,42,0.04);
-    margin-bottom:18px;
-}
-
-.roadmap-card h4{
-    margin-top:0;
-    margin-bottom:4px;
-}
-
-.roadmap-period{
-    font-size:13px;
-    color:#6B7280;
-    margin-bottom:12px;
-    font-weight:600;
-}
-
-.roadmap-item{
-    margin-bottom:10px;
-    line-height:1.45;
-}
-
 .outcome-box{
     border-left:5px solid #059669;
     background:rgba(5,150,105,0.08);
@@ -95,6 +71,40 @@ st.markdown(
     border-radius:10px;
     margin-top:12px;
     margin-bottom:18px;
+}
+
+.roadmap-card{
+    border-radius:14px;
+    border:1px solid rgba(128,128,128,0.25);
+    padding:18px;
+    min-height:330px;
+    background:rgba(15,23,42,0.04);
+    margin-bottom:18px;
+}
+
+.roadmap-title{
+    font-size:20px;
+    font-weight:700;
+    margin-bottom:4px;
+}
+
+.roadmap-period{
+    font-size:13px;
+    color:#6B7280;
+    margin-bottom:14px;
+    font-weight:600;
+}
+
+.roadmap-list{
+    padding-left:0;
+    margin-left:0;
+    list-style-type:none;
+}
+
+.roadmap-list li{
+    margin-bottom:12px;
+    line-height:1.45;
+    font-size:15px;
 }
 
 div[data-testid="metric-container"]{
@@ -210,21 +220,21 @@ def render_roadmap_card(title, period, items, color):
 
         safe_item = html.escape(item)
 
-        list_items += f"""
-        <div class="roadmap-item">
-            <span style="color:{color}; font-weight:700;">●</span>
-            {safe_item}
-        </div>
-        """
+        list_items += (
+            f'<li><span style="color:{color}; font-weight:700;">●</span> '
+            f'{safe_item}</li>'
+        )
+
+    card_html = (
+        f'<div class="roadmap-card" style="border-top:5px solid {color};">'
+        f'<div class="roadmap-title">{safe_title}</div>'
+        f'<div class="roadmap-period">{safe_period}</div>'
+        f'<ul class="roadmap-list">{list_items}</ul>'
+        f'</div>'
+    )
 
     st.markdown(
-        f"""
-<div class="roadmap-card" style="border-top:5px solid {color};">
-    <h4>{safe_title}</h4>
-    <div class="roadmap-period">{safe_period}</div>
-    {list_items}
-</div>
-""",
+        card_html,
         unsafe_allow_html=True
     )
 
