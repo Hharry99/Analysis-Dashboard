@@ -39,7 +39,7 @@ from utils.dashboard_style import apply_dashboard_style
 
 st.set_page_config(
     page_title="Pavement Performance Management Dashboard",
-    page_icon="📊",
+    page_icon="▥",
     layout="wide"
 )
 
@@ -189,6 +189,23 @@ div[data-testid="metric-container"]{
     border-radius:12px;
     margin-top:10px;
     margin-bottom:20px;
+}
+
+
+.sidebar-nav-title{
+    font-size:18px;
+    font-weight:800;
+    margin-top:4px;
+    margin-bottom:10px;
+}
+
+.sidebar-nav-group{
+    font-size:13px;
+    font-weight:800;
+    margin-top:14px;
+    margin-bottom:4px;
+    color:#6B7280;
+    letter-spacing:0.4px;
 }
 
 .section-title{
@@ -545,12 +562,130 @@ analysis_df = pd.concat(
     axis=1
 )
 
+
+# ==========================================================
+# GROUPED SIDEBAR NAVIGATION
+# ==========================================================
+
+def sidebar_page_link(page, label):
+
+    try:
+
+        st.sidebar.page_link(
+            page,
+            label=label
+        )
+
+    except Exception:
+
+        st.sidebar.markdown(
+            f"- {label}"
+        )
+
+
+st.sidebar.markdown(
+    "<div class='sidebar-nav-title'>▥ Dashboard Navigation</div>",
+    unsafe_allow_html=True
+)
+
+st.sidebar.markdown(
+    "<div class='sidebar-nav-group'>▣ Executive Overview</div>",
+    unsafe_allow_html=True
+)
+
+sidebar_page_link(
+    "Executive Dashboard.py",
+    "▥ Executive Dashboard"
+)
+
+sidebar_page_link(
+    "pages/01_Respondent_Profile.py",
+    "▥ Respondent Profile"
+)
+
+st.sidebar.markdown(
+    "<div class='sidebar-nav-group'>▣ Maturity Analysis</div>",
+    unsafe_allow_html=True
+)
+
+sidebar_page_link(
+    "pages/02_Data_Maturity_Analysis.py",
+    "▥ Data Maturity Analysis"
+)
+
+sidebar_page_link(
+    "pages/03_Forecasting_Maturity.py",
+    "▥ Forecasting Maturity Analysis"
+)
+
+sidebar_page_link(
+    "pages/04_Reconstruction_Readiness.py",
+    "▥ Reconstruction Readiness Analysis"
+)
+
+sidebar_page_link(
+    "pages/05_Digital_Readiness.py",
+    "▥ Digital Readiness Analysis"
+)
+
+st.sidebar.markdown(
+    "<div class='sidebar-nav-group'>▣ Question Analytics</div>",
+    unsafe_allow_html=True
+)
+
+sidebar_page_link(
+    "pages/06_Data_Practices_Questions.py",
+    "▥ Data Practices Questions"
+)
+
+sidebar_page_link(
+    "pages/07_Forecasting_Questions.py",
+    "▥ Forecasting Questions"
+)
+
+sidebar_page_link(
+    "pages/08_Reconstruction_and_Modelling_Questions.py",
+    "▥ Reconstruction & Modelling Questions"
+)
+
+sidebar_page_link(
+    "pages/09_Digital_Readiness_Questions.py",
+    "▥ Digital Readiness Questions"
+)
+
+st.sidebar.markdown(
+    "<div class='sidebar-nav-group'>▣ Strategic Insights</div>",
+    unsafe_allow_html=True
+)
+
+sidebar_page_link(
+    "pages/10_Open_Ended_Insights.py",
+    "▥ Open Ended Insights"
+)
+
+sidebar_page_link(
+    "pages/11_Benchmarking_and_Gap_Analysis.py",
+    "▥ Benchmarking & Gap Analysis"
+)
+
+sidebar_page_link(
+    "pages/12_Strategic_Roadmap.py",
+    "▥ Strategic Roadmap"
+)
+
+sidebar_page_link(
+    "pages/13_Key_Findings_and_Recommendations.py",
+    "▥ Key Findings & Recommendations"
+)
+
+st.sidebar.divider()
+
 # ==========================================================
 # SIDEBAR FILTERS
 # ==========================================================
 
 st.sidebar.header(
-    "⚙ Dashboard Filters"
+    "▣ Dashboard Filters"
 )
 
 selected_agencies = st.sidebar.multiselect(
