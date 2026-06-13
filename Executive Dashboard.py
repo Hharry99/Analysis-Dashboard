@@ -30,6 +30,11 @@ from utils.data_cleaning import (
 from utils.theme_coder import build_theme_dataset
 from utils.theme_dictionary import THEME_KEYWORDS
 
+from utils.dashboard_style import (
+    apply_dashboard_style,
+    render_status_badges
+)
+
 # ==========================================================
 # PAGE CONFIG
 # ==========================================================
@@ -199,6 +204,12 @@ div[data-testid="metric-container"]{
 """,
     unsafe_allow_html=True
 )
+
+# ==========================================================
+# DASHBOARD VISUAL POLISH ADDITIONS
+# ==========================================================
+
+apply_dashboard_style()
 
 # ==========================================================
 # DATA LOADING
@@ -774,6 +785,13 @@ Based on {responses} practitioner responses from {agencies} road-sector agencies
 """,
     unsafe_allow_html=True
 )
+
+render_status_badges([
+    ("INTERIM DATASET", "blue"),
+    ("FRAMEWORK ALIGNED", "green"),
+    ("FINAL REFRESH PENDING", "orange"),
+    ("EXECUTIVE OVERVIEW", "purple")
+])
 
 st.divider()
 
