@@ -235,6 +235,60 @@ def render_recommendation_card(number, title, rationale):
         unsafe_allow_html=True
     )
 
+
+def apply_readable_horizontal_bar_layout(fig, height=500):
+
+    fig.update_layout(
+        height=height,
+        showlegend=False,
+        margin=dict(
+            l=70,
+            r=105,
+            t=80,
+            b=90
+        ),
+        xaxis=dict(
+            automargin=True,
+            title_standoff=20
+        ),
+        yaxis=dict(
+            automargin=True,
+            title_standoff=20
+        )
+    )
+
+    fig.update_traces(
+        textposition="outside",
+        cliponaxis=False
+    )
+
+    return fig
+
+
+def format_score_dataframe(df_in):
+
+    df_out = df_in.copy()
+
+    score_cols = [
+        "Average Score",
+        "Overall Score",
+        "DMI",
+        "FMI",
+        "RRI",
+        "DRI"
+    ]
+
+    for col in score_cols:
+
+        if col in df_out.columns:
+
+            df_out[col] = pd.to_numeric(
+                df_out[col],
+                errors="coerce"
+            ).round(1)
+
+    return df_out
+
 # ==========================================================
 # CLEAN AND STANDARDIZE BENCHMARK DATA
 # ==========================================================
@@ -491,15 +545,23 @@ fig_dim.update_layout(
         range=[
             0,
             100
-        ]
+        ],
+        automargin=True,
+        title_standoff=20
     ),
-    height=460,
-    showlegend=False
+    yaxis=dict(
+        automargin=True,
+        title_standoff=20
+    )
 )
 
 fig_dim.update_traces(
-    texttemplate="%{text:.1f}",
-    textposition="outside"
+    texttemplate="%{text:.1f}"
+)
+
+fig_dim = apply_readable_horizontal_bar_layout(
+    fig_dim,
+    height=500
 )
 
 st.plotly_chart(
@@ -507,9 +569,22 @@ st.plotly_chart(
     use_container_width=True
 )
 
+st.caption(
+    "Takeaway: Data Maturity is the weakest system-wide maturity dimension, while Reconstruction Readiness is the strongest."
+)
+
+dimension_summary_display_df = format_score_dataframe(
+    dimension_summary
+)
+
 st.dataframe(
-    dimension_summary,
-    use_container_width=True
+    dimension_summary_display_df,
+    use_container_width=True,
+    hide_index=True,
+    height=min(
+        300,
+        36 * len(dimension_summary_display_df) + 40
+    )
 )
 
 # ==========================================================
@@ -655,7 +730,12 @@ risk_df = pd.DataFrame({
 
 st.dataframe(
     risk_df,
-    use_container_width=True
+    use_container_width=True,
+    hide_index=True,
+    height=min(
+        340,
+        38 * len(risk_df) + 40
+    )
 )
 
 # ==========================================================
@@ -754,9 +834,18 @@ priority_df = priority_df[
     ]
 ]
 
+priority_display_df = format_score_dataframe(
+    priority_df
+)
+
 st.dataframe(
-    priority_df,
-    use_container_width=True
+    priority_display_df,
+    use_container_width=True,
+    hide_index=True,
+    height=min(
+        300,
+        36 * len(priority_display_df) + 40
+    )
 )
 
 fig_priority = px.bar(
@@ -780,20 +869,32 @@ fig_priority.update_layout(
         range=[
             0,
             100
-        ]
+        ],
+        automargin=True,
+        title_standoff=20
     ),
-    height=460,
-    showlegend=False
+    yaxis=dict(
+        automargin=True,
+        title_standoff=20
+    )
 )
 
 fig_priority.update_traces(
-    texttemplate="%{text:.1f}",
-    textposition="outside"
+    texttemplate="%{text:.1f}"
+)
+
+fig_priority = apply_readable_horizontal_bar_layout(
+    fig_priority,
+    height=500
 )
 
 st.plotly_chart(
     fig_priority,
     use_container_width=True
+)
+
+st.caption(
+    "Takeaway: Priority investment should begin with the lowest-scoring maturity areas, especially Data Maturity and Forecasting Maturity."
 )
 
 # ==========================================================
@@ -867,9 +968,14 @@ with st.expander(
         }
     )
 
+    ranking_display_df = format_score_dataframe(
+        ranking_df
+    )
+
     st.dataframe(
-        ranking_df,
-        use_container_width=True
+        ranking_display_df,
+        use_container_width=True,
+        hide_index=True
     )
 
     st.markdown(
@@ -877,8 +983,9 @@ with st.expander(
     )
 
     st.dataframe(
-        dimension_summary,
-        use_container_width=True
+        dimension_summary_display_df,
+        use_container_width=True,
+        hide_index=True
     )
 
     st.markdown(
@@ -886,8 +993,9 @@ with st.expander(
     )
 
     st.dataframe(
-        priority_df,
-        use_container_width=True
+        priority_display_df,
+        use_container_width=True,
+        hide_index=True
     )
 
 # ==========================================================
@@ -920,3 +1028,24 @@ The dashboard provides a practical decision-support framework for moving
 agencies toward more mature, evidence-based and performance-oriented road asset
 management.
 """)
+
+# ==========================================================
+# FINAL NAVIGATION HINT
+# ==========================================================
+
+st.divider()
+
+try:
+
+    st.page_link(
+        "Executive Dashboard.py",
+        label="Return to Executive Dashboard",
+        icon="⬅️"
+    )
+
+except Exception:
+
+    st.caption(
+        "Return to Executive Dashboard ←"
+    )
+
