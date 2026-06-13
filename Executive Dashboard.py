@@ -363,15 +363,32 @@ def gauge_chart(title, value):
         go.Indicator(
             mode="gauge+number",
             value=value,
+            number={
+                "suffix": "%",
+                "font": {
+                    "size": 42
+                }
+            },
             title={
-                "text": title
+                "text": title,
+                "font": {
+                    "size": 18
+                }
+            },
+            domain={
+                "x": [0.05, 0.95],
+                "y": [0.05, 0.95]
             },
             gauge={
                 "axis": {
-                    "range": [0, 100]
+                    "range": [0, 100],
+                    "tickfont": {
+                        "size": 12
+                    }
                 },
                 "bar": {
-                    "color": "#2563EB"
+                    "color": "#2563EB",
+                    "thickness": 0.25
                 },
                 "steps": [
                     {
@@ -396,7 +413,13 @@ def gauge_chart(title, value):
     )
 
     fig.update_layout(
-        height=300
+        height=360,
+        margin=dict(
+            l=30,
+            r=30,
+            t=70,
+            b=30
+        )
     )
 
     return fig
@@ -443,6 +466,46 @@ def shorten_strategic_theme(label):
         label,
         label
     )
+
+
+def apply_readable_donut_layout(fig, height=560):
+    """
+    Makes donut/pie charts readable in normal dashboard view and PDF export.
+    Labels are kept short, percentages stay inside slices, and the legend
+    is moved below the chart to avoid right-side clipping in columns.
+    """
+
+    fig.update_traces(
+        textinfo="percent",
+        textposition="inside",
+        insidetextorientation="radial",
+        hovertemplate="%{label}<br>%{percent}<extra></extra>"
+    )
+
+    fig.update_layout(
+        height=height,
+        showlegend=True,
+        margin=dict(
+            l=20,
+            r=20,
+            t=70,
+            b=125
+        ),
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.18,
+            xanchor="center",
+            x=0.50,
+            font=dict(
+                size=11
+            )
+        ),
+        uniformtext_minsize=10,
+        uniformtext_mode="show"
+    )
+
+    return fig
 
 # ==========================================================
 # PREPARE ANALYSIS DATA
@@ -824,10 +887,6 @@ Based on {responses} practitioner responses from {agencies} road-sector agencies
 </div>
 """,
     unsafe_allow_html=True
-)
-
-st.caption(
-    "Page purpose: Provides a high-level executive overview of the full study, including respondent profile, maturity scores, benchmarking, qualitative insights and strategic priorities."
 )
 
 st.divider()
@@ -1240,8 +1299,9 @@ with col1:
         color_discrete_sequence=ALT_COLOR_SEQUENCE
     )
 
-    fig_agency.update_layout(
-        height=450
+    fig_agency = apply_readable_donut_layout(
+        fig_agency,
+        height=530
     )
 
     st.plotly_chart(
@@ -1417,21 +1477,9 @@ if not strategic_theme_summary.empty:
                 color_discrete_sequence=THEME_COLOR_SEQUENCE
             )
 
-            fig_theme_pct.update_layout(
-                height=520,
-                margin=dict(
-                    l=10,
-                    r=10,
-                    t=70,
-                    b=120
-                ),
-                legend=dict(
-                    orientation="h",
-                    yanchor="top",
-                    y=-0.18,
-                    xanchor="center",
-                    x=0.50
-                )
+            fig_theme_pct = apply_readable_donut_layout(
+                fig_theme_pct,
+                height=580
             )
 
             st.plotly_chart(
