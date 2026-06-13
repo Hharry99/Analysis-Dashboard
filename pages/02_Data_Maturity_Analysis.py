@@ -73,37 +73,6 @@ div[data-testid="metric-container"]{
 apply_dashboard_style()
 
 # ==========================================================
-# SIDEBAR NAVIGATION GUIDE
-# ==========================================================
-
-st.sidebar.markdown(
-    """
-    <div style="font-size:13px; line-height:1.45; margin-bottom:12px;">
-    <b>Dashboard Navigation Groups</b><br>
-    <b>Executive Overview</b><br>
-    • Executive Dashboard<br>
-    • Respondent Profile<br><br>
-    <b>Maturity Analysis</b><br>
-    • Data Maturity<br>
-    • Forecasting Maturity<br>
-    • Reconstruction Readiness<br>
-    • Digital Readiness<br><br>
-    <b>Question Analytics</b><br>
-    • Data Practices Questions<br>
-    • Forecasting Questions<br>
-    • Reconstruction & Modelling Questions<br>
-    • Digital Readiness Questions<br><br>
-    <b>Strategic Insights</b><br>
-    • Open Ended Insights<br>
-    • Benchmarking & Gap Analysis<br>
-    • Strategic Roadmap<br>
-    • Key Findings & Recommendations
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-# ==========================================================
 # LOAD DATA
 # ==========================================================
 
@@ -612,8 +581,14 @@ ranking_df = ranking_df.rename(
     }
 )
 
-st.table(
-    ranking_df
+st.dataframe(
+    ranking_df,
+    use_container_width=True,
+    hide_index=True,
+    height=min(
+        300,
+        36 * len(ranking_df) + 40
+    )
 )
 
 # ==========================================================
@@ -681,7 +656,8 @@ with st.expander(
 
     st.dataframe(
         ranking_df,
-        use_container_width=True
+        use_container_width=True,
+        hide_index=True
     )
 
     st.markdown(
@@ -706,7 +682,8 @@ with st.expander(
 
     st.dataframe(
         band_summary,
-        use_container_width=True
+        use_container_width=True,
+        hide_index=True
     )
 
 # ==========================================================
