@@ -582,8 +582,14 @@ ranking_df = ranking_df.rename(
     }
 )
 
-st.table(
-    ranking_df
+st.dataframe(
+    ranking_df,
+    use_container_width=True,
+    hide_index=True,
+    height=min(
+        300,
+        36 * len(ranking_df) + 40
+    )
 )
 
 # ==========================================================
@@ -651,7 +657,8 @@ with st.expander(
 
     st.dataframe(
         ranking_df,
-        use_container_width=True
+        use_container_width=True,
+        hide_index=True
     )
 
     st.markdown(
@@ -676,7 +683,8 @@ with st.expander(
 
     st.dataframe(
         band_summary,
-        use_container_width=True
+        use_container_width=True,
+        hide_index=True
     )
 
 # ==========================================================
