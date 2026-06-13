@@ -184,6 +184,92 @@ def add_percentage(df_in, count_col):
 
     return df_out
 
+
+def apply_readable_histogram_layout(fig, height=540):
+
+    fig.update_layout(
+        height=height,
+        bargap=0.10,
+        margin=dict(
+            l=60,
+            r=40,
+            t=80,
+            b=120
+        ),
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.22,
+            xanchor="center",
+            x=0.50
+        ),
+        legend_title_text="Maturity Band",
+        xaxis=dict(
+            automargin=True,
+            title_standoff=20
+        ),
+        yaxis=dict(
+            automargin=True,
+            title_standoff=20
+        )
+    )
+
+    return fig
+
+
+def apply_readable_vertical_bar_layout(fig, height=540):
+
+    fig.update_layout(
+        height=height,
+        showlegend=False,
+        margin=dict(
+            l=60,
+            r=70,
+            t=80,
+            b=90
+        ),
+        xaxis=dict(
+            automargin=True,
+            title_standoff=20
+        ),
+        yaxis=dict(
+            automargin=True,
+            title_standoff=20
+        )
+    )
+
+    fig.update_traces(
+        texttemplate="%{text:.1f}",
+        textposition="outside",
+        cliponaxis=False
+    )
+
+    return fig
+
+
+def apply_readable_heatmap_layout(fig, height=360):
+
+    fig.update_layout(
+        height=height,
+        margin=dict(
+            l=60,
+            r=40,
+            t=80,
+            b=80
+        ),
+        xaxis=dict(
+            automargin=True,
+            title_standoff=20
+        ),
+        yaxis=dict(
+            automargin=True,
+            title_standoff=20
+        ),
+        coloraxis_showscale=False
+    )
+
+    return fig
+
 # ==========================================================
 # PREPARE DATA
 # ==========================================================
@@ -397,15 +483,21 @@ fig_hist = px.histogram(
 
 fig_hist.update_layout(
     xaxis_title="Digital Readiness Index",
-    yaxis_title="Number of Responses",
-    height=480,
-    bargap=0.10,
-    legend_title_text="Maturity Band"
+    yaxis_title="Number of Responses"
+)
+
+fig_hist = apply_readable_histogram_layout(
+    fig_hist,
+    height=540
 )
 
 st.plotly_chart(
     fig_hist,
     use_container_width=True
+)
+
+st.caption(
+    "Takeaway: The distribution shows that digital readiness is mainly developing, with room to strengthen digital systems and decision-support capability."
 )
 
 # ==========================================================
@@ -434,20 +526,28 @@ fig_agency.update_layout(
         range=[
             0,
             100
-        ]
+        ],
+        automargin=True,
+        title_standoff=20
     ),
-    height=520,
-    showlegend=False
+    xaxis=dict(
+        automargin=True,
+        title_standoff=20
+    )
 )
 
-fig_agency.update_traces(
-    texttemplate="%{text:.1f}",
-    textposition="outside"
+fig_agency = apply_readable_vertical_bar_layout(
+    fig_agency,
+    height=540
 )
 
 st.plotly_chart(
     fig_agency,
     use_container_width=True
+)
+
+st.caption(
+    "Takeaway: MTRD records the highest average DRI, while KURA records the lowest average DRI among the participating agencies."
 )
 
 # ==========================================================
@@ -482,9 +582,8 @@ ranking_df = ranking_df.rename(
     }
 )
 
-st.dataframe(
-    ranking_df,
-    use_container_width=True
+st.table(
+    ranking_df
 )
 
 # ==========================================================
@@ -519,16 +618,22 @@ fig_heatmap = px.imshow(
     title="Digital Readiness Heatmap by Agency",
     color_continuous_scale=HEATMAP_SCALE,
     zmin=0,
-    zmax=100
+    zmax=100,
+    text_auto=".1f"
 )
 
-fig_heatmap.update_layout(
-    height=450
+fig_heatmap = apply_readable_heatmap_layout(
+    fig_heatmap,
+    height=360
 )
 
 st.plotly_chart(
     fig_heatmap,
     use_container_width=True
+)
+
+st.caption(
+    "Takeaway: The heatmap provides a compact scorecard view of agency-level DRI performance."
 )
 
 # ==========================================================
@@ -602,3 +707,24 @@ Agency-level variation highlights opportunities for digital modernization,
 technology adoption, capacity development and improved use of digital tools
 for infrastructure planning and decision-making.
 """)
+
+# ==========================================================
+# NEXT PAGE HINT
+# ==========================================================
+
+st.divider()
+
+try:
+
+    st.page_link(
+        "pages/06_Data_Practices_Questions.py",
+        label="Next suggested page: Data Practices Questions",
+        icon="➡️"
+    )
+
+except Exception:
+
+    st.caption(
+        "Next suggested page: Data Practices Questions →"
+    )
+
