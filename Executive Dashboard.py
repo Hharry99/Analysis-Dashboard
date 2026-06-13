@@ -18,6 +18,7 @@
 # ==========================================================
 
 import streamlit as st
+import textwrap
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -440,58 +441,46 @@ def round_display_columns(df, columns, decimals=1):
 
     return df
 
+def wrap_label(value, width=30):
+
+    text = str(value)
+
+    wrapped = textwrap.wrap(
+        text,
+        width=width,
+        break_long_words=False,
+        break_on_hyphens=False
+    )
+
+    if not wrapped:
+        return text
+
+    return "<br>".join(
+        wrapped
+    )
+
+
 def shorten_strategic_theme(label):
 
-    label_map = {
-        "Data Systems & Databases":
-            "Data Systems",
-
-        "Routine Data Collection & Monitoring":
-            "Data Collection",
-
-        "Forecasting, AI & Analytics":
-            "Forecasting & AI",
-
-        "Capacity Building & Training":
-            "Capacity Building",
-
-        "Institutional Coordination & Policy":
-            "Coordination & Policy",
-
-        "Funding & Resource Allocation":
-            "Funding"
-    }
-
-    return label_map.get(
+    return wrap_label(
         label,
-        label
+        width=28
     )
 
 
 def shorten_work_level(label):
 
-    label_map = {
-        "Regional office (regional work planning, implementation)":
-            "Regional office",
-
-        "Headquarters (national coordination)":
-            "Headquarters",
-
-        "Hybrid":
-            "Hybrid"
-    }
-
-    return label_map.get(
-        str(label),
-        str(label)
+    return wrap_label(
+        label,
+        width=32
     )
 
 
 def apply_readable_donut_layout(fig, height=560):
     """
     Makes donut/pie charts readable in normal dashboard view and PDF export.
-    Labels are kept short, percentages stay inside slices, and the legend
-    is moved below the chart to avoid right-side clipping in columns.
+    Percentages stay inside slices and full labels are wrapped in the legend
+    instead of being truncated.
     """
 
     fig.update_traces(
@@ -508,16 +497,16 @@ def apply_readable_donut_layout(fig, height=560):
             l=20,
             r=20,
             t=70,
-            b=125
+            b=180
         ),
         legend=dict(
             orientation="h",
             yanchor="top",
-            y=-0.18,
+            y=-0.22,
             xanchor="center",
             x=0.50,
             font=dict(
-                size=11
+                size=10
             )
         ),
         uniformtext_minsize=10,
@@ -1079,15 +1068,28 @@ fig_maturity.update_layout(
         range=[
             0,
             100
-        ]
+        ],
+        automargin=True,
+        title_standoff=20
     ),
-    height=450,
-    showlegend=False
+    yaxis=dict(
+        automargin=True,
+        title_standoff=20
+    ),
+    height=480,
+    showlegend=False,
+    margin=dict(
+        l=70,
+        r=100,
+        t=80,
+        b=90
+    )
 )
 
 fig_maturity.update_traces(
     texttemplate="%{text:.1f}",
-    textposition="outside"
+    textposition="outside",
+    cliponaxis=False
 )
 
 st.plotly_chart(
@@ -1207,7 +1209,8 @@ domain_df = pd.DataFrame({
 
 st.dataframe(
     domain_df,
-    use_container_width=True
+    use_container_width=True,
+    hide_index=True
 )
 
 st.caption(
@@ -1274,7 +1277,8 @@ if not benchmark_display_df.empty:
 
     st.dataframe(
         benchmark_summary,
-        use_container_width=True
+        use_container_width=True,
+        hide_index=True
     )
 
     st.caption(
@@ -1372,14 +1376,14 @@ with col2:
         )
 
         fig_level.update_layout(
-            height=520,
+            height=560,
             showlegend=False,
             xaxis_title="Responses",
             yaxis_title="Work Level",
             margin=dict(
-                l=30,
-                r=80,
-                t=70,
+                l=45,
+                r=95,
+                t=80,
                 b=90
             ),
             xaxis=dict(
@@ -1477,18 +1481,44 @@ if not strategic_theme_summary.empty:
                 ascending=True
             ),
             x="Mentions",
-            y="Theme",
+            y="Display Theme",
             orientation="h",
             color="Theme",
+            custom_data=[
+                "Theme",
+                "Mentions"
+            ],
             color_discrete_sequence=THEME_COLOR_SEQUENCE,
             title="Strategic Theme Group Mentions"
         )
 
         fig_theme.update_layout(
-            height=450,
+            height=520,
             xaxis_title="Mentions",
             yaxis_title="Strategic Theme Group",
-            showlegend=False
+            showlegend=False,
+            margin=dict(
+                l=40,
+                r=80,
+                t=80,
+                b=90
+            ),
+            xaxis=dict(
+                automargin=True,
+                title_standoff=20
+            ),
+            yaxis=dict(
+                automargin=True,
+                title_standoff=20
+            )
+        )
+
+        fig_theme.update_traces(
+            hovertemplate=(
+                "Theme: %{customdata[0]}<br>"
+                "Mentions: %{customdata[1]}<extra></extra>"
+            ),
+            cliponaxis=False
         )
 
         st.plotly_chart(
@@ -1531,7 +1561,7 @@ if not strategic_theme_summary.empty:
 
             fig_theme_pct = apply_readable_donut_layout(
                 fig_theme_pct,
-                height=580
+                height=640
             )
 
             st.plotly_chart(
@@ -1576,7 +1606,8 @@ with st.expander(
 
     st.dataframe(
         health_df,
-        use_container_width=True
+        use_container_width=True,
+        hide_index=True
     )
 
     st.markdown(
@@ -1598,7 +1629,8 @@ with st.expander(
 
     st.dataframe(
         dq_df,
-        use_container_width=True
+        use_container_width=True,
+        hide_index=True
     )
 
 # ==========================================================
