@@ -4,6 +4,7 @@
 # ==========================================================
 
 import streamlit as st
+import textwrap
 import pandas as pd
 import plotly.express as px
 
@@ -181,11 +182,19 @@ def shorten_label(value, max_length=80):
 
     text = str(value)
 
-    if len(text) > max_length:
+    wrapped = textwrap.wrap(
+        text,
+        width=max_length,
+        break_long_words=False,
+        break_on_hyphens=False
+    )
 
-        return text[:max_length - 3] + "..."
+    if not wrapped:
+        return text
 
-    return text
+    return "<br>".join(
+        wrapped
+    )
 
 
 def apply_readable_horizontal_bar_layout(fig, row_count, height_min=520):
@@ -193,8 +202,8 @@ def apply_readable_horizontal_bar_layout(fig, row_count, height_min=520):
     chart_height = max(
         height_min,
         min(
-            900,
-            180 + row_count * 36
+            980,
+            210 + row_count * 54
         )
     )
 
@@ -202,17 +211,18 @@ def apply_readable_horizontal_bar_layout(fig, row_count, height_min=520):
         height=chart_height,
         showlegend=False,
         margin=dict(
-            l=40,
-            r=95,
+            l=60,
+            r=115,
             t=80,
-            b=90
+            b=95
         ),
         xaxis=dict(
             automargin=True,
             title_standoff=20
         ),
         yaxis=dict(
-            automargin=True
+            automargin=True,
+            title_standoff=20
         )
     )
 
@@ -229,14 +239,14 @@ def apply_readable_heatmap_layout(fig, height=600):
     fig.update_layout(
         height=height,
         margin=dict(
-            l=70,
+            l=80,
             r=40,
             t=80,
-            b=135
+            b=170
         ),
         xaxis=dict(
             automargin=True,
-            tickangle=-30,
+            tickangle=0,
             title_standoff=25
         ),
         yaxis=dict(
@@ -252,15 +262,6 @@ def apply_readable_heatmap_layout(fig, height=600):
 def make_display_table(df_in, response_col="Response", max_length=72):
 
     df_out = df_in.copy()
-
-    if response_col in df_out.columns:
-
-        df_out[response_col] = df_out[response_col].apply(
-            lambda x: shorten_label(
-                x,
-                max_length=max_length
-            )
-        )
 
     if "Percentage" in df_out.columns:
 
@@ -612,7 +613,7 @@ chart_df = (
 chart_df["Display Response"] = chart_df["Response"].apply(
     lambda x: shorten_label(
         x,
-        max_length=58
+        max_length=46
     )
 )
 
@@ -764,7 +765,7 @@ try:
     display_columns = {
         col: shorten_label(
             col,
-            max_length=32
+            max_length=28
         )
         for col in cross_df.columns
     }
@@ -797,7 +798,7 @@ try:
     )
 
     st.caption(
-        "Takeaway: The heatmap compares the strongest response categories across agencies using shortened labels for readability."
+        "Takeaway: The heatmap compares the strongest response categories across agencies using wrapped full labels for readability."
     )
 
 except Exception as e:
@@ -829,8 +830,14 @@ summary_display_df = make_display_table(
     max_length=72
 )
 
-st.table(
-    summary_display_df
+st.dataframe(
+    summary_display_df,
+    use_container_width=True,
+    hide_index=True,
+    height=min(
+        380,
+        36 * len(summary_display_df) + 40
+    )
 )
 
 # ==========================================================
@@ -876,7 +883,12 @@ with st.expander(
 
         st.dataframe(
             agency_response_df,
-            use_container_width=True
+            use_container_width=True,
+            hide_index=True,
+            height=min(
+                420,
+                35 * len(agency_response_df) + 40
+            )
         )
 
     except Exception:
