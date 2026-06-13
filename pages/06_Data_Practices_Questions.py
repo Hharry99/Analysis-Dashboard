@@ -187,6 +187,89 @@ def shorten_label(value, max_length=80):
 
     return text
 
+
+def apply_readable_horizontal_bar_layout(fig, row_count, height_min=520):
+
+    chart_height = max(
+        height_min,
+        min(
+            900,
+            180 + row_count * 36
+        )
+    )
+
+    fig.update_layout(
+        height=chart_height,
+        showlegend=False,
+        margin=dict(
+            l=40,
+            r=95,
+            t=80,
+            b=90
+        ),
+        xaxis=dict(
+            automargin=True,
+            title_standoff=20
+        ),
+        yaxis=dict(
+            automargin=True
+        )
+    )
+
+    fig.update_traces(
+        textposition="outside",
+        cliponaxis=False
+    )
+
+    return fig
+
+
+def apply_readable_heatmap_layout(fig, height=600):
+
+    fig.update_layout(
+        height=height,
+        margin=dict(
+            l=70,
+            r=40,
+            t=80,
+            b=135
+        ),
+        xaxis=dict(
+            automargin=True,
+            tickangle=-30,
+            title_standoff=25
+        ),
+        yaxis=dict(
+            automargin=True,
+            title_standoff=20
+        ),
+        coloraxis_showscale=False
+    )
+
+    return fig
+
+
+def make_display_table(df_in, response_col="Response", max_length=72):
+
+    df_out = df_in.copy()
+
+    if response_col in df_out.columns:
+
+        df_out[response_col] = df_out[response_col].apply(
+            lambda x: shorten_label(
+                x,
+                max_length=max_length
+            )
+        )
+
+    if "Percentage" in df_out.columns:
+
+        df_out["Percentage"] = df_out["Percentage"].map(
+            lambda x: f"{float(x):.1f}%"
+        )
+
+    return df_out
+
 # ==========================================================
 # QUESTION MAP
 # ==========================================================
@@ -516,10 +599,24 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-chart_df = freq_df.sort_values(
-    "Count",
-    ascending=True
+chart_df = (
+    freq_df
+    .head(10)
+    .sort_values(
+        "Count",
+        ascending=True
+    )
+    .copy()
 )
+
+chart_df["Display Response"] = chart_df["Response"].apply(
+    lambda x: shorten_label(
+        x,
+        max_length=58
+    )
+)
+
+max_count = chart_df["Count"].max()
 
 fig = px.bar(
     chart_df,
@@ -528,6 +625,10 @@ fig = px.bar(
     orientation="h",
     text="Percentage",
     color="Display Response",
+    custom_data=[
+        "Response",
+        "Count"
+    ],
     color_discrete_sequence=BAR_COLOR_SEQUENCE,
     title=f"{selected_question} Response Distribution"
 )
@@ -535,18 +636,39 @@ fig = px.bar(
 fig.update_layout(
     yaxis_title="Response",
     xaxis_title="Number of Responses",
-    height=700,
-    showlegend=False
+    xaxis=dict(
+        range=[
+            0,
+            max(
+                5,
+                max_count * 1.20
+            )
+        ]
+    )
 )
 
 fig.update_traces(
-    texttemplate="%{text}%",
-    textposition="outside"
+    texttemplate="%{text:.1f}%",
+    hovertemplate=(
+        "Response: %{customdata[0]}<br>"
+        "Count: %{customdata[1]}<br>"
+        "Share: %{text:.1f}%<extra></extra>"
+    )
+)
+
+fig = apply_readable_horizontal_bar_layout(
+    fig,
+    row_count=len(chart_df),
+    height_min=560
 )
 
 st.plotly_chart(
     fig,
     use_container_width=True
+)
+
+st.caption(
+    "Takeaway: The chart shows the top response categories for the selected question. Full response details remain available in the summary table below."
 )
 
 # ==========================================================
@@ -611,7 +733,7 @@ try:
 
     top_responses = (
         freq_df
-        .head(10)["Response"]
+        .head(8)["Response"]
         .tolist()
     )
 
@@ -639,6 +761,18 @@ try:
         ]
     ]
 
+    display_columns = {
+        col: shorten_label(
+            col,
+            max_length=32
+        )
+        for col in cross_df.columns
+    }
+
+    cross_df = cross_df.rename(
+        columns=display_columns
+    )
+
     fig2 = px.imshow(
         cross_df,
         aspect="auto",
@@ -648,16 +782,22 @@ try:
             y="Agency",
             color="Count"
         ),
-        color_continuous_scale=HEATMAP_SCALE
+        color_continuous_scale=HEATMAP_SCALE,
+        text_auto=True
     )
 
-    fig2.update_layout(
-        height=650
+    fig2 = apply_readable_heatmap_layout(
+        fig2,
+        height=610
     )
 
     st.plotly_chart(
         fig2,
         use_container_width=True
+    )
+
+    st.caption(
+        "Takeaway: The heatmap compares the strongest response categories across agencies using shortened labels for readability."
     )
 
 except Exception as e:
@@ -683,9 +823,14 @@ summary_display_df = freq_df[
     ]
 ].copy()
 
-st.dataframe(
+summary_display_df = make_display_table(
     summary_display_df,
-    use_container_width=True
+    response_col="Response",
+    max_length=72
+)
+
+st.table(
+    summary_display_df
 )
 
 # ==========================================================
@@ -762,3 +907,24 @@ Differences across agencies may highlight opportunities for benchmarking,
 capacity building, improved data governance, better data systems and stronger
 evidence-based pavement management practices.
 """)
+
+# ==========================================================
+# NEXT PAGE HINT
+# ==========================================================
+
+st.divider()
+
+try:
+
+    st.page_link(
+        "pages/07_Forecasting_Questions.py",
+        label="Next suggested page: Forecasting Questions",
+        icon="➡️"
+    )
+
+except Exception:
+
+    st.caption(
+        "Next suggested page: Forecasting Questions →"
+    )
+
