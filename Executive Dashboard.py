@@ -39,7 +39,7 @@ from utils.dashboard_style import apply_dashboard_style
 
 st.set_page_config(
     page_title="Pavement Performance Management Dashboard",
-    page_icon="▥",
+    page_icon="▦",
     layout="wide"
 )
 
@@ -192,20 +192,32 @@ div[data-testid="metric-container"]{
 }
 
 
+
+/* Hide Streamlit's default multipage navigation list.
+   This prevents duplicate page lists above the custom grouped menu. */
+[data-testid="stSidebarNav"],
+[data-testid="stSidebarNavItems"],
+section[data-testid="stSidebar"] div[data-testid="stSidebarNav"]{
+    display:none !important;
+    visibility:hidden !important;
+    height:0 !important;
+    overflow:hidden !important;
+}
+
+/* Custom grouped sidebar navigation */
 .sidebar-nav-title{
     font-size:18px;
     font-weight:800;
     margin-top:4px;
-    margin-bottom:10px;
+    margin-bottom:8px;
+    letter-spacing:0.2px;
 }
 
-.sidebar-nav-group{
-    font-size:13px;
-    font-weight:800;
-    margin-top:14px;
-    margin-bottom:4px;
+.sidebar-nav-caption{
+    font-size:12px;
     color:#6B7280;
-    letter-spacing:0.4px;
+    margin-bottom:10px;
+    line-height:1.35;
 }
 
 .section-title{
@@ -563,6 +575,7 @@ analysis_df = pd.concat(
 )
 
 
+
 # ==========================================================
 # GROUPED SIDEBAR NAVIGATION
 # ==========================================================
@@ -571,112 +584,121 @@ def sidebar_page_link(page, label):
 
     try:
 
-        st.sidebar.page_link(
+        st.page_link(
             page,
             label=label
         )
 
     except Exception:
 
-        st.sidebar.markdown(
+        st.markdown(
             f"- {label}"
         )
 
 
 st.sidebar.markdown(
-    "<div class='sidebar-nav-title'>▥ Dashboard Navigation</div>",
+    "<div class='sidebar-nav-title'>▦ Dashboard Menu</div>",
     unsafe_allow_html=True
 )
 
 st.sidebar.markdown(
-    "<div class='sidebar-nav-group'>▣ Executive Overview</div>",
+    "<div class='sidebar-nav-caption'>Grouped pages are shown below. Open a section to move to another dashboard page.</div>",
     unsafe_allow_html=True
 )
 
-sidebar_page_link(
-    "Executive Dashboard.py",
-    "▥ Executive Dashboard"
-)
+with st.sidebar.expander(
+    "▤ Executive Overview",
+    expanded=True
+):
 
-sidebar_page_link(
-    "pages/01_Respondent_Profile.py",
-    "▥ Respondent Profile"
-)
+    sidebar_page_link(
+        "Executive Dashboard.py",
+        "▦ Executive Dashboard"
+    )
 
-st.sidebar.markdown(
-    "<div class='sidebar-nav-group'>▣ Maturity Analysis</div>",
-    unsafe_allow_html=True
-)
+    sidebar_page_link(
+        "pages/01_Respondent_Profile.py",
+        "☷ Respondent Profile"
+    )
 
-sidebar_page_link(
-    "pages/02_Data_Maturity_Analysis.py",
-    "▥ Data Maturity Analysis"
-)
 
-sidebar_page_link(
-    "pages/03_Forecasting_Maturity.py",
-    "▥ Forecasting Maturity Analysis"
-)
+with st.sidebar.expander(
+    "◇ Maturity Analysis",
+    expanded=False
+):
 
-sidebar_page_link(
-    "pages/04_Reconstruction_Readiness.py",
-    "▥ Reconstruction Readiness Analysis"
-)
+    sidebar_page_link(
+        "pages/02_Data_Maturity_Analysis.py",
+        "◈ Data Maturity Analysis"
+    )
 
-sidebar_page_link(
-    "pages/05_Digital_Readiness.py",
-    "▥ Digital Readiness Analysis"
-)
+    sidebar_page_link(
+        "pages/03_Forecasting_Maturity.py",
+        "⌁ Forecasting Maturity Analysis"
+    )
 
-st.sidebar.markdown(
-    "<div class='sidebar-nav-group'>▣ Question Analytics</div>",
-    unsafe_allow_html=True
-)
+    sidebar_page_link(
+        "pages/04_Reconstruction_Readiness.py",
+        "▱ Reconstruction Readiness Analysis"
+    )
 
-sidebar_page_link(
-    "pages/06_Data_Practices_Questions.py",
-    "▥ Data Practices Questions"
-)
+    sidebar_page_link(
+        "pages/05_Digital_Readiness.py",
+        "◌ Digital Readiness Analysis"
+    )
 
-sidebar_page_link(
-    "pages/07_Forecasting_Questions.py",
-    "▥ Forecasting Questions"
-)
 
-sidebar_page_link(
-    "pages/08_Reconstruction_and_Modelling_Questions.py",
-    "▥ Reconstruction & Modelling Questions"
-)
+with st.sidebar.expander(
+    "⊞ Question Analytics",
+    expanded=False
+):
 
-sidebar_page_link(
-    "pages/09_Digital_Readiness_Questions.py",
-    "▥ Digital Readiness Questions"
-)
+    sidebar_page_link(
+        "pages/06_Data_Practices_Questions.py",
+        "☰ Data Practices Questions"
+    )
 
-st.sidebar.markdown(
-    "<div class='sidebar-nav-group'>▣ Strategic Insights</div>",
-    unsafe_allow_html=True
-)
+    sidebar_page_link(
+        "pages/07_Forecasting_Questions.py",
+        "⌕ Forecasting Questions"
+    )
 
-sidebar_page_link(
-    "pages/10_Open_Ended_Insights.py",
-    "▥ Open Ended Insights"
-)
+    sidebar_page_link(
+        "pages/08_Reconstruction_and_Modelling_Questions.py",
+        "◇ Reconstruction & Modelling Questions"
+    )
 
-sidebar_page_link(
-    "pages/11_Benchmarking_and_Gap_Analysis.py",
-    "▥ Benchmarking & Gap Analysis"
-)
+    sidebar_page_link(
+        "pages/09_Digital_Readiness_Questions.py",
+        "◍ Digital Readiness Questions"
+    )
 
-sidebar_page_link(
-    "pages/12_Strategic_Roadmap.py",
-    "▥ Strategic Roadmap"
-)
 
-sidebar_page_link(
-    "pages/13_Key_Findings_and_Recommendations.py",
-    "▥ Key Findings & Recommendations"
-)
+with st.sidebar.expander(
+    "✧ Strategic Insights",
+    expanded=False
+):
+
+    sidebar_page_link(
+        "pages/10_Open_Ended_Insights.py",
+        "◆ Open Ended Insights"
+    )
+
+    sidebar_page_link(
+        "pages/11_Benchmarking_and_Gap_Analysis.py",
+        "▧ Benchmarking & Gap Analysis"
+    )
+
+    sidebar_page_link(
+        "pages/12_Strategic_Roadmap.py",
+        "⌂ Strategic Roadmap"
+    )
+
+    sidebar_page_link(
+        "pages/13_Key_Findings_and_Recommendations.py",
+        "★ Key Findings & Recommendations"
+    )
+
 
 st.sidebar.divider()
 
@@ -685,7 +707,7 @@ st.sidebar.divider()
 # ==========================================================
 
 st.sidebar.header(
-    "▣ Dashboard Filters"
+    "▣ Filters"
 )
 
 selected_agencies = st.sidebar.multiselect(
