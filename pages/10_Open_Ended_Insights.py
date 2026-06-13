@@ -5,6 +5,7 @@
 
 import html
 import streamlit as st
+import textwrap
 import pandas as pd
 import plotly.express as px
 
@@ -64,6 +65,43 @@ st.markdown(
     border-radius:10px;
     margin-top:15px;
     margin-bottom:20px;
+}
+
+
+.compact-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+    line-height:1.35;
+    margin-top:8px;
+    margin-bottom:18px;
+}
+
+.compact-table th{
+    text-align:left;
+    padding:8px 10px;
+    border-bottom:1px solid rgba(128,128,128,0.35);
+    background:rgba(15,23,42,0.04);
+    font-weight:700;
+}
+
+.compact-table td{
+    padding:8px 10px;
+    border-bottom:1px solid rgba(128,128,128,0.22);
+    vertical-align:top;
+    white-space:normal;
+    word-break:normal;
+    overflow-wrap:break-word;
+}
+
+.compact-table .num{
+    text-align:right;
+    white-space:nowrap;
+}
+
+.compact-table .center{
+    text-align:center;
+    white-space:nowrap;
 }
 
 .quote-card {
@@ -194,11 +232,19 @@ def shorten_label(value, max_length=75):
 
     text = str(value)
 
-    if len(text) > max_length:
+    wrapped = textwrap.wrap(
+        text,
+        width=max_length,
+        break_long_words=False,
+        break_on_hyphens=False
+    )
 
-        return text[:max_length - 3] + "..."
+    if not wrapped:
+        return text
 
-    return text
+    return "<br>".join(
+        wrapped
+    )
 
 
 def apply_readable_horizontal_bar_layout(fig, row_count, height_min=560):
@@ -206,8 +252,8 @@ def apply_readable_horizontal_bar_layout(fig, row_count, height_min=560):
     chart_height = max(
         height_min,
         min(
-            860,
-            190 + row_count * 42
+            980,
+            220 + row_count * 50
         )
     )
 
@@ -215,17 +261,18 @@ def apply_readable_horizontal_bar_layout(fig, row_count, height_min=560):
         height=chart_height,
         showlegend=False,
         margin=dict(
-            l=40,
-            r=110,
+            l=70,
+            r=120,
             t=80,
-            b=90
+            b=95
         ),
         xaxis=dict(
             automargin=True,
             title_standoff=20
         ),
         yaxis=dict(
-            automargin=True
+            automargin=True,
+            title_standoff=20
         )
     )
 
@@ -242,14 +289,14 @@ def apply_readable_heatmap_layout(fig, height=650):
     fig.update_layout(
         height=height,
         margin=dict(
-            l=75,
+            l=80,
             r=40,
             t=80,
-            b=145
+            b=80
         ),
         xaxis=dict(
             automargin=True,
-            tickangle=-25,
+            tickangle=0,
             title_standoff=25
         ),
         yaxis=dict(
@@ -265,7 +312,7 @@ def apply_readable_heatmap_layout(fig, height=650):
 def apply_readable_donut_layout(fig, height=600):
 
     fig.update_traces(
-        textinfo="percent",
+        textinfo="percent+label",
         textposition="inside",
         insidetextorientation="radial",
         hovertemplate=(
@@ -282,16 +329,16 @@ def apply_readable_donut_layout(fig, height=600):
             l=20,
             r=20,
             t=80,
-            b=150
+            b=110
         ),
         legend=dict(
             orientation="h",
             yanchor="top",
-            y=-0.18,
+            y=-0.12,
             xanchor="center",
             x=0.50,
             font=dict(
-                size=10
+                size=11
             )
         ),
         uniformtext_minsize=10,
@@ -305,15 +352,6 @@ def make_display_table(df_in, text_col="Theme", max_length=78):
 
     df_out = df_in.copy()
 
-    if text_col in df_out.columns:
-
-        df_out[text_col] = df_out[text_col].apply(
-            lambda x: shorten_label(
-                x,
-                max_length=max_length
-            )
-        )
-
     if "Percentage" in df_out.columns:
 
         df_out["Percentage"] = df_out["Percentage"].map(
@@ -321,6 +359,80 @@ def make_display_table(df_in, text_col="Theme", max_length=78):
         )
 
     return df_out
+
+
+def render_compact_table(df_in, numeric_columns=None, max_rows=None):
+
+    numeric_columns = numeric_columns or []
+
+    df_out = df_in.copy()
+
+    if max_rows is not None:
+
+        df_out = df_out.head(max_rows)
+
+    html_rows = []
+
+    headers = "".join(
+        f"<th>{str(col)}</th>"
+        for col in df_out.columns
+    )
+
+    for _, row in df_out.iterrows():
+
+        cells = []
+
+        for col in df_out.columns:
+
+            value = row[col]
+
+            css_class = (
+                "num"
+                if col in numeric_columns
+                else ""
+            )
+
+            cells.append(
+                f"<td class='{css_class}'>{str(value)}</td>"
+            )
+
+        html_rows.append(
+            "<tr>" + "".join(cells) + "</tr>"
+        )
+
+    table_html = (
+        "<table class='compact-table'>"
+        "<thead><tr>"
+        + headers
+        + "</tr></thead>"
+        "<tbody>"
+        + "".join(html_rows)
+        + "</tbody></table>"
+    )
+
+    st.markdown(
+        table_html,
+        unsafe_allow_html=True
+    )
+
+
+def build_theme_key(themes):
+
+    key_rows = []
+
+    for idx, theme in enumerate(
+        themes,
+        start=1
+    ):
+
+        key_rows.append({
+            "Code": f"T{idx}",
+            "Full Operational Theme": theme
+        })
+
+    return pd.DataFrame(
+        key_rows
+    )
 
 # ==========================================================
 # PAGE HEADER
@@ -531,6 +643,17 @@ top_mentions = (
     else 0
 )
 
+theme_key_df = build_theme_key(
+    theme_freq["Theme"].tolist()
+)
+
+theme_code_map = dict(
+    zip(
+        theme_key_df["Full Operational Theme"],
+        theme_key_df["Code"]
+    )
+)
+
 # ==========================================================
 # QUALITATIVE INSIGHTS SNAPSHOT
 # ==========================================================
@@ -578,7 +701,7 @@ chart_theme_freq = (
 chart_theme_freq["Display Theme"] = chart_theme_freq["Theme"].apply(
     lambda x: shorten_label(
         x,
-        max_length=52
+        max_length=44
     )
 )
 
@@ -669,16 +792,8 @@ try:
         ordered_theme_cols
     ]
 
-    display_columns = {
-        col: shorten_label(
-            col,
-            max_length=34
-        )
-        for col in cross_df.columns
-    }
-
     cross_df = cross_df.rename(
-        columns=display_columns
+        columns=theme_code_map
     )
 
     fig_heatmap = px.imshow(
@@ -686,7 +801,7 @@ try:
         aspect="auto",
         title="Operational Theme Frequency by Agency",
         labels=dict(
-            x="Operational Theme",
+            x="Operational theme code",
             y="Agency",
             color="Mentions"
         ),
@@ -694,9 +809,13 @@ try:
         text_auto=True
     )
 
+    fig_heatmap.update_xaxes(
+        tickangle=0
+    )
+
     fig_heatmap = apply_readable_heatmap_layout(
         fig_heatmap,
-        height=660
+        height=520
     )
 
     st.plotly_chart(
@@ -705,7 +824,17 @@ try:
     )
 
     st.caption(
-        "Takeaway: The heatmap shows how operational themes are distributed across agencies, with shortened theme labels for normal-view readability."
+        "Takeaway: The heatmap uses theme codes to avoid congested labels. The full operational theme names are shown in the key below."
+    )
+
+    st.markdown(
+        "#### Operational Theme Code Key"
+    )
+
+    render_compact_table(
+        theme_key_df,
+        numeric_columns=[],
+        max_rows=None
     )
 
 except Exception as e:
@@ -725,11 +854,8 @@ st.markdown(
 
 theme_share_df = theme_freq.copy()
 
-theme_share_df["Display Theme"] = theme_share_df["Theme"].apply(
-    lambda x: shorten_label(
-        x,
-        max_length=26
-    )
+theme_share_df["Display Theme"] = theme_share_df["Theme"].map(
+    theme_code_map
 )
 
 fig_theme_share = px.pie(
@@ -756,7 +882,7 @@ st.plotly_chart(
 )
 
 st.caption(
-    "Takeaway: The donut chart summarises proportional theme share; the bar chart above remains the clearest view for exact ranking."
+    "Takeaway: The donut chart uses the same theme codes shown in the Operational Theme Code Key above. The bar chart remains the clearest view for exact ranking."
 )
 
 # ==========================================================
@@ -782,14 +908,23 @@ theme_summary_display_df = make_display_table(
     max_length=78
 )
 
-st.dataframe(
-    theme_summary_display_df,
-    use_container_width=True,
-    hide_index=True,
-    height=min(
-        420,
-        35 * len(theme_summary_display_df) + 40
+theme_summary_display_df.insert(
+    0,
+    "No.",
+    range(
+        1,
+        len(theme_summary_display_df) + 1
     )
+)
+
+render_compact_table(
+    theme_summary_display_df,
+    numeric_columns=[
+        "No.",
+        "Count",
+        "Percentage"
+    ],
+    max_rows=None
 )
 
 # ==========================================================
@@ -899,14 +1034,22 @@ with st.expander(
         max_length=85
     )
 
-    st.dataframe(
-        theme_agency_display_df,
-        use_container_width=True,
-        hide_index=True,
-        height=min(
-            460,
-            35 * len(theme_agency_display_df) + 40
+    theme_agency_display_df.insert(
+        0,
+        "No.",
+        range(
+            1,
+            len(theme_agency_display_df) + 1
         )
+    )
+
+    render_compact_table(
+        theme_agency_display_df,
+        numeric_columns=[
+            "No.",
+            "Count"
+        ],
+        max_rows=None
     )
 
 # ==========================================================
