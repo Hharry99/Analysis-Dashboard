@@ -577,6 +577,15 @@ dimension_summary_display_df = format_score_dataframe(
     dimension_summary
 )
 
+dimension_summary_display_df.insert(
+    0,
+    "No.",
+    range(
+        1,
+        len(dimension_summary_display_df) + 1
+    )
+)
+
 st.dataframe(
     dimension_summary_display_df,
     use_container_width=True,
@@ -727,6 +736,15 @@ risk_df = pd.DataFrame({
         "Improve evidence-based funding justification and lifecycle investment planning."
     ]
 })
+
+risk_df.insert(
+    0,
+    "No.",
+    range(
+        1,
+        len(risk_df) + 1
+    )
+)
 
 st.dataframe(
     risk_df,
