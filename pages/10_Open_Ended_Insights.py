@@ -200,6 +200,128 @@ def shorten_label(value, max_length=75):
 
     return text
 
+
+def apply_readable_horizontal_bar_layout(fig, row_count, height_min=560):
+
+    chart_height = max(
+        height_min,
+        min(
+            860,
+            190 + row_count * 42
+        )
+    )
+
+    fig.update_layout(
+        height=chart_height,
+        showlegend=False,
+        margin=dict(
+            l=40,
+            r=110,
+            t=80,
+            b=90
+        ),
+        xaxis=dict(
+            automargin=True,
+            title_standoff=20
+        ),
+        yaxis=dict(
+            automargin=True
+        )
+    )
+
+    fig.update_traces(
+        textposition="outside",
+        cliponaxis=False
+    )
+
+    return fig
+
+
+def apply_readable_heatmap_layout(fig, height=650):
+
+    fig.update_layout(
+        height=height,
+        margin=dict(
+            l=75,
+            r=40,
+            t=80,
+            b=145
+        ),
+        xaxis=dict(
+            automargin=True,
+            tickangle=-25,
+            title_standoff=25
+        ),
+        yaxis=dict(
+            automargin=True,
+            title_standoff=20
+        ),
+        coloraxis_showscale=False
+    )
+
+    return fig
+
+
+def apply_readable_donut_layout(fig, height=600):
+
+    fig.update_traces(
+        textinfo="percent",
+        textposition="inside",
+        insidetextorientation="radial",
+        hovertemplate=(
+            "Theme: %{customdata[0]}<br>"
+            "Mentions: %{customdata[1]}<br>"
+            "Share: %{percent}<extra></extra>"
+        )
+    )
+
+    fig.update_layout(
+        height=height,
+        showlegend=True,
+        margin=dict(
+            l=20,
+            r=20,
+            t=80,
+            b=150
+        ),
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.18,
+            xanchor="center",
+            x=0.50,
+            font=dict(
+                size=10
+            )
+        ),
+        uniformtext_minsize=10,
+        uniformtext_mode="show"
+    )
+
+    return fig
+
+
+def make_display_table(df_in, text_col="Theme", max_length=78):
+
+    df_out = df_in.copy()
+
+    if text_col in df_out.columns:
+
+        df_out[text_col] = df_out[text_col].apply(
+            lambda x: shorten_label(
+                x,
+                max_length=max_length
+            )
+        )
+
+    if "Percentage" in df_out.columns:
+
+        df_out["Percentage"] = df_out["Percentage"].map(
+            lambda x: f"{float(x):.1f}%"
+        )
+
+    return df_out
+
 # ==========================================================
 # PAGE HEADER
 # ==========================================================
@@ -444,10 +566,23 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-chart_theme_freq = theme_freq.sort_values(
-    "Count",
-    ascending=True
+chart_theme_freq = (
+    theme_freq
+    .sort_values(
+        "Count",
+        ascending=True
+    )
+    .copy()
 )
+
+chart_theme_freq["Display Theme"] = chart_theme_freq["Theme"].apply(
+    lambda x: shorten_label(
+        x,
+        max_length=52
+    )
+)
+
+max_theme_count = chart_theme_freq["Count"].max()
 
 fig_theme = px.bar(
     chart_theme_freq,
@@ -456,6 +591,10 @@ fig_theme = px.bar(
     orientation="h",
     text="Percentage",
     color="Display Theme",
+    custom_data=[
+        "Theme",
+        "Count"
+    ],
     color_discrete_sequence=BAR_COLOR_SEQUENCE,
     title="Most Frequently Mentioned Operational Themes"
 )
@@ -463,18 +602,39 @@ fig_theme = px.bar(
 fig_theme.update_layout(
     yaxis_title="Operational Theme",
     xaxis_title="Number of Mentions",
-    height=680,
-    showlegend=False
+    xaxis=dict(
+        range=[
+            0,
+            max(
+                5,
+                max_theme_count * 1.18
+            )
+        ]
+    )
 )
 
 fig_theme.update_traces(
-    texttemplate="%{text}%",
-    textposition="outside"
+    texttemplate="%{text:.1f}%",
+    hovertemplate=(
+        "Theme: %{customdata[0]}<br>"
+        "Mentions: %{customdata[1]}<br>"
+        "Share: %{text:.1f}%<extra></extra>"
+    )
+)
+
+fig_theme = apply_readable_horizontal_bar_layout(
+    fig_theme,
+    row_count=len(chart_theme_freq),
+    height_min=620
 )
 
 st.plotly_chart(
     fig_theme,
     use_container_width=True
+)
+
+st.caption(
+    "Takeaway: Digital Transformation & Technology is the most frequently mentioned operational theme, followed by asset management and capacity building themes."
 )
 
 # ==========================================================
@@ -509,6 +669,18 @@ try:
         ordered_theme_cols
     ]
 
+    display_columns = {
+        col: shorten_label(
+            col,
+            max_length=34
+        )
+        for col in cross_df.columns
+    }
+
+    cross_df = cross_df.rename(
+        columns=display_columns
+    )
+
     fig_heatmap = px.imshow(
         cross_df,
         aspect="auto",
@@ -518,16 +690,22 @@ try:
             y="Agency",
             color="Mentions"
         ),
-        color_continuous_scale=HEATMAP_SCALE
+        color_continuous_scale=HEATMAP_SCALE,
+        text_auto=True
     )
 
-    fig_heatmap.update_layout(
-        height=700
+    fig_heatmap = apply_readable_heatmap_layout(
+        fig_heatmap,
+        height=660
     )
 
     st.plotly_chart(
         fig_heatmap,
         use_container_width=True
+    )
+
+    st.caption(
+        "Takeaway: The heatmap shows how operational themes are distributed across agencies, with shortened theme labels for normal-view readability."
     )
 
 except Exception as e:
@@ -545,22 +723,40 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+theme_share_df = theme_freq.copy()
+
+theme_share_df["Display Theme"] = theme_share_df["Theme"].apply(
+    lambda x: shorten_label(
+        x,
+        max_length=26
+    )
+)
+
 fig_theme_share = px.pie(
-    theme_freq,
-    names="Theme",
+    theme_share_df,
+    names="Display Theme",
     values="Percentage",
     hole=0.55,
     title="Share of Operational Theme Mentions",
+    custom_data=[
+        "Theme",
+        "Count"
+    ],
     color_discrete_sequence=PIE_COLOR_SEQUENCE
 )
 
-fig_theme_share.update_layout(
-    height=520
+fig_theme_share = apply_readable_donut_layout(
+    fig_theme_share,
+    height=620
 )
 
 st.plotly_chart(
     fig_theme_share,
     use_container_width=True
+)
+
+st.caption(
+    "Takeaway: The donut chart summarises proportional theme share; the bar chart above remains the clearest view for exact ranking."
 )
 
 # ==========================================================
@@ -572,15 +768,28 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+theme_summary_display_df = theme_freq[
+    [
+        "Theme",
+        "Count",
+        "Percentage"
+    ]
+].copy()
+
+theme_summary_display_df = make_display_table(
+    theme_summary_display_df,
+    text_col="Theme",
+    max_length=78
+)
+
 st.dataframe(
-    theme_freq[
-        [
-            "Theme",
-            "Count",
-            "Percentage"
-        ]
-    ],
-    use_container_width=True
+    theme_summary_display_df,
+    use_container_width=True,
+    hide_index=True,
+    height=min(
+        420,
+        35 * len(theme_summary_display_df) + 40
+    )
 )
 
 # ==========================================================
@@ -684,9 +893,20 @@ with st.expander(
         ]
     )
 
-    st.dataframe(
+    theme_agency_display_df = make_display_table(
         theme_agency,
-        use_container_width=True
+        text_col="Theme",
+        max_length=85
+    )
+
+    st.dataframe(
+        theme_agency_display_df,
+        use_container_width=True,
+        hide_index=True,
+        height=min(
+            460,
+            35 * len(theme_agency_display_df) + 40
+        )
     )
 
 # ==========================================================
@@ -718,3 +938,24 @@ and help explain the practical needs identified by respondents across
 participating agencies.
 """
 )
+
+# ==========================================================
+# NEXT PAGE HINT
+# ==========================================================
+
+st.divider()
+
+try:
+
+    st.page_link(
+        "pages/11_Benchmarking_and_Gap_Analysis.py",
+        label="Next suggested page: Benchmarking and Gap Analysis",
+        icon="➡️"
+    )
+
+except Exception:
+
+    st.caption(
+        "Next suggested page: Benchmarking and Gap Analysis →"
+    )
+
