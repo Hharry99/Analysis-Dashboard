@@ -9,6 +9,8 @@ import plotly.express as px
 
 from utils.data_cleaning import clean_master_dataset
 
+from utils.dashboard_style import apply_dashboard_style
+
 # ==========================================================
 # PAGE CONFIG
 # ==========================================================
@@ -71,6 +73,12 @@ div[data-testid="metric-container"]{
 """,
     unsafe_allow_html=True
 )
+
+# ==========================================================
+# DASHBOARD VISUAL POLISH ADDITIONS
+# ==========================================================
+
+apply_dashboard_style()
 
 # ==========================================================
 # LOAD DATA
