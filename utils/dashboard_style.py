@@ -5,7 +5,6 @@
 # Save as: utils/dashboard_style.py
 # ==========================================================
 
-import html
 import streamlit as st
 
 
@@ -175,54 +174,3 @@ div[data-testid="metric-container"] [data-testid="stMetricValue"] {
 
 </style>
 """, unsafe_allow_html=True)
-
-
-def render_status_badges(items):
-    """
-    Render small dashboard status badges.
-    """
-    color_map = {
-        "blue": ("#DBEAFE", "#1D4ED8"),
-        "green": ("#DCFCE7", "#15803D"),
-        "orange": ("#FFEDD5", "#C2410C"),
-        "purple": ("#F3E8FF", "#7E22CE"),
-        "red": ("#FEE2E2", "#B91C1C")
-    }
-
-    badge_html = """
-    <div style="
-        display:flex;
-        flex-wrap:wrap;
-        gap:8px;
-        justify-content:center;
-        margin: 0.75rem 0 1rem 0;
-    ">
-    """
-
-    for item in items:
-        if isinstance(item, tuple):
-            label, color = item
-        else:
-            label, color = item, "blue"
-
-        bg, fg = color_map.get(color, ("#DBEAFE", "#1D4ED8"))
-        safe_label = html.escape(str(label))
-
-        badge_html += f"""
-        <span style="
-            background:{bg};
-            color:{fg};
-            padding:6px 12px;
-            border-radius:999px;
-            font-size:12px;
-            font-weight:800;
-            letter-spacing:0.03em;
-            display:inline-block;
-            border:1px solid rgba(15,23,42,0.06);
-        ">
-            {safe_label}
-        </span>
-        """
-
-    badge_html += "</div>"
-    st.markdown(badge_html, unsafe_allow_html=True)
