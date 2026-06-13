@@ -452,8 +452,24 @@ analysis_df = pd.concat(
 # ==========================================================
 
 st.sidebar.header(
-    "Dashboard Filters"
+    "⚙ Dashboard Filters"
 )
+
+st.sidebar.markdown(
+    """
+    <div style="font-size:13px; line-height:1.45; margin-bottom:12px;">
+    <b>Dashboard Navigation Guide</b><br>
+    1. Executive Overview<br>
+    2. Respondent Profile<br>
+    3. Maturity Analysis<br>
+    4. Question Analytics<br>
+    5. Open-Ended Insights<br>
+    6. Benchmarking, Roadmap and Recommendations
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 
 selected_agencies = st.sidebar.multiselect(
     "Agency",
@@ -785,6 +801,14 @@ Based on {responses} practitioner responses from {agencies} road-sector agencies
 
 render_status_line()
 
+st.caption(
+    "📌 Page purpose: Provides a high-level executive overview of the full study, including respondent profile, maturity scores, benchmarking, qualitative insights and strategic priorities."
+)
+
+st.caption(
+    "🏷 Page context: Executive overview · Full research summary · Decision-support landing page"
+)
+
 st.divider()
 
 # ==========================================================
@@ -972,6 +996,10 @@ st.plotly_chart(
     use_container_width=True
 )
 
+st.caption(
+    "Takeaway: Data Maturity is the main priority improvement area, while Reconstruction Readiness is the strongest maturity dimension."
+)
+
 c1, c2 = st.columns(2)
 
 with c1:
@@ -1038,6 +1066,10 @@ with g4:
         use_container_width=True
     )
 
+st.caption(
+    "Takeaway: The four maturity gauges provide a quick comparison of the core maturity dimensions used in the assessment."
+)
+
 # ==========================================================
 # SURVEY DOMAIN OVERVIEW
 # ==========================================================
@@ -1077,6 +1109,10 @@ domain_df = pd.DataFrame({
 st.dataframe(
     domain_df,
     use_container_width=True
+)
+
+st.caption(
+    "Takeaway: The survey structure moves from respondent background to maturity drivers, technical readiness and open-ended practitioner insights."
 )
 
 # ==========================================================
@@ -1146,6 +1182,10 @@ if not benchmark_display_df.empty:
         "Note: Benchmark records will be refreshed after survey closure to ensure one final validated record per agency."
     )
 
+    st.caption(
+        "Takeaway: Benchmarking gives an interim view of agency positioning and will be refreshed after the final validated dataset is updated."
+    )
+
 # ==========================================================
 # RESPONDENT AND AGENCY OVERVIEW
 # ==========================================================
@@ -1192,6 +1232,10 @@ with col1:
         use_container_width=True
     )
 
+    st.caption(
+        "Takeaway: The agency distribution shows the spread of survey participation across the road-sector agencies."
+    )
+
 with col2:
 
     if level_col:
@@ -1231,6 +1275,10 @@ with col2:
         st.plotly_chart(
             fig_level,
             use_container_width=True
+        )
+
+        st.caption(
+            "Takeaway: Work-level distribution helps show whether responses reflect both national coordination and implementation perspectives."
         )
 
 # ==========================================================
@@ -1315,6 +1363,10 @@ if not strategic_theme_summary.empty:
             use_container_width=True
         )
 
+        st.caption(
+            "Takeaway: Strategic theme frequency highlights the main areas practitioners emphasise for strengthening pavement performance management."
+        )
+
     with col2:
 
         st.markdown(
@@ -1351,6 +1403,10 @@ if not strategic_theme_summary.empty:
             st.plotly_chart(
                 fig_theme_pct,
                 use_container_width=True
+            )
+
+            st.caption(
+                "Takeaway: Theme share summarises how practitioner priorities are distributed across the strategic theme groups."
             )
 
 # ==========================================================
@@ -1448,6 +1504,16 @@ Overall, the dashboard provides a decision-support framework for identifying
 sector-wide maturity gaps, agency-level priorities and practical improvement
 pathways for pavement performance management in Kenya.
 """)
+
+# ==========================================================
+# NEXT PAGE HINT
+# ==========================================================
+
+st.divider()
+
+st.caption(
+    "Next suggested page: Respondent Profile Analysis →"
+)
 
 # ==========================================================
 # DEVELOPER DIAGNOSTICS
