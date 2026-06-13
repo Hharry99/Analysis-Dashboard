@@ -1,1876 +1,308 @@
 # ==========================================================
-# PAVEMENT PERFORMANCE MANAGEMENT DASHBOARD
-# EXECUTIVE DASHBOARD - FULL RESEARCH OVERVIEW POLISHED VERSION
-#
-# Research:
-# Pavement Performance Management Under Data Constraints
-# Perspectives of Practitioners in Kenya
-#
-# Purpose:
-# This page provides a high-level overview of the full study:
-# respondent profile, maturity indices, survey domains,
-# benchmarking, qualitative insights, dataset health and
-# strategic priorities.
-# ==========================================================
-
-# ==========================================================
-# IMPORTS
+# SHARED DASHBOARD NAVIGATION
+# Applies grouped navigation consistently across all dashboard pages.
 # ==========================================================
 
 import streamlit as st
-import textwrap
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 
-from utils.data_cleaning import (
-    clean_master_dataset,
-    index_diagnostics
-)
 
-from utils.theme_coder import build_theme_dataset
-from utils.theme_dictionary import THEME_KEYWORDS
-
-from utils.dashboard_style import apply_dashboard_style
-
-# ==========================================================
-# PAGE CONFIG
-# ==========================================================
-
-st.set_page_config(
-    page_title="Pavement Performance Management Dashboard",
-    page_icon="▦",
-    layout="wide"
-)
-
-# ==========================================================
-# CONFIGURATION
-# ==========================================================
-
-DEVELOPER_MODE = False
-
-STRATEGIC_THEME_DISPLAY_NAMES = {
-    "Data_Systems_Databases":
-        "Data Systems & Databases",
-
-    "Routine_Data_Collection":
-        "Routine Data Collection & Monitoring",
-
-    "Forecasting_AI_Analytics":
-        "Forecasting, AI & Analytics",
-
-    "Capacity_Building_Training":
-        "Capacity Building & Training",
-
-    "Institutional_Coordination_Policy":
-        "Institutional Coordination & Policy",
-
-    "Funding_Resource_Allocation":
-        "Funding & Resource Allocation"
-}
-
-Q27_COL = (
-    "Q27. What practical improvements in data systems, institutional "
-    "approaches, or technical capacity would most strengthen pavement "
-    "performance management in Kenya?"
-)
-
-Q28_COL = (
-    "Q28. Do you have any additional comments or recommendations regarding "
-    "forecasting, modelling, or use of condition data in road asset "
-    "management and planning?"
-)
-
-TEXT_COLUMNS = [
-    Q27_COL,
-    Q28_COL
-]
-
-INDEX_COLS = [
-    "DMI",
-    "FMI",
-    "RRI",
-    "DRI"
-]
-
-INDEX_LABELS = {
-    "DMI": "Data Maturity",
-    "FMI": "Forecasting Maturity",
-    "RRI": "Reconstruction Readiness",
-    "DRI": "Digital Readiness"
-}
-
-# ==========================================================
-# VISUAL STYLE SETTINGS
-# ==========================================================
-
-COLOR_SEQUENCE = px.colors.qualitative.Set2
-ALT_COLOR_SEQUENCE = px.colors.qualitative.Pastel
-THEME_COLOR_SEQUENCE = px.colors.qualitative.Bold
-
-# ==========================================================
-# CUSTOM CSS
-# ==========================================================
-
-st.markdown(
+def apply_sidebar_navigation(current_page="Executive Dashboard"):
     """
+    Renders the same grouped sidebar navigation on every page.
+    Also hides Streamlit's default multipage navigation to avoid duplication.
+    The styling is adaptive for light and dark mode.
+    """
+
+    st.markdown(
+        """
 <style>
 
-.hero-badge{
-    display:inline-block;
-    padding:10px 25px;
-    border-radius:30px;
-    border:2px solid #D97706;
-    color:#D97706;
-    font-weight:700;
-    letter-spacing:1px;
-}
-
-.hero-title{
-    font-size:48px;
-    font-weight:800;
-    text-align:center;
-    line-height:1.15;
-    margin-top:20px;
-}
-
-.hero-subtitle{
-    font-size:28px;
-    font-weight:600;
-    text-align:center;
-    color:#D97706;
-    margin-top:10px;
-}
-
-.hero-description{
-    text-align:center;
-    color:#6B7280;
-    font-size:18px;
-    margin-top:10px;
-}
-
-div[data-testid="metric-container"]{
-    border-radius:16px;
-    padding:18px;
-    border:1px solid rgba(128,128,128,0.25);
-    background:rgba(15,23,42,0.05);
-}
-
-.scope-box{
-    border-radius:15px;
-    padding:20px;
-    border:1px solid rgba(128,128,128,0.25);
-    margin-top:20px;
-    margin-bottom:20px;
-}
-
-.findings-box{
-    border-left:6px solid #D97706;
-    background:rgba(217,119,6,0.08);
-    padding:20px;
-    border-radius:10px;
-    margin-top:15px;
-    margin-bottom:20px;
-}
-
-.note-box{
-    border-left:5px solid #2563EB;
-    background:rgba(37,99,235,0.08);
-    padding:15px;
-    border-radius:10px;
-    margin-top:10px;
-    margin-bottom:20px;
-}
-
-.theme-highlight-box{
-    border-left:5px solid #7C3AED;
-    background:rgba(124,58,237,0.08);
-    padding:18px;
-    border-radius:12px;
-    margin-top:10px;
-    margin-bottom:20px;
-}
-
-
-
-/* Hide Streamlit's default multipage navigation list.
-   This prevents duplicate page lists above the custom grouped menu. */
+/* ==========================================================
+   Hide Streamlit default multipage navigation
+   ========================================================== */
 [data-testid="stSidebarNav"],
 [data-testid="stSidebarNavItems"],
 section[data-testid="stSidebar"] div[data-testid="stSidebarNav"]{
     display:none !important;
     visibility:hidden !important;
     height:0 !important;
+    max-height:0 !important;
     overflow:hidden !important;
 }
 
-/* Custom grouped sidebar navigation */
-.sidebar-nav-title{
+/* ==========================================================
+   Light/Dark adaptive variables
+   ========================================================== */
+:root{
+    --nav-title-text:#111827;
+    --nav-muted-text:#374151;
+    --nav-panel-bg:rgba(243,244,246,0.88);
+    --nav-panel-border:rgba(17,24,39,0.13);
+    --nav-link-text:#1F2937;
+    --nav-link-hover-bg:rgba(37,99,235,0.08);
+    --nav-filter-text:#111827;
+    --nav-input-bg:#FFFFFF;
+    --nav-input-text:#111827;
+    --nav-placeholder:#4B5563;
+    --nav-expander-bg:rgba(249,250,251,0.92);
+}
+
+@media (prefers-color-scheme: dark){
+    :root{
+        --nav-title-text:#F9FAFB;
+        --nav-muted-text:#D1D5DB;
+        --nav-panel-bg:rgba(17,24,39,0.88);
+        --nav-panel-border:rgba(229,231,235,0.18);
+        --nav-link-text:#F3F4F6;
+        --nav-link-hover-bg:rgba(96,165,250,0.16);
+        --nav-filter-text:#F9FAFB;
+        --nav-input-bg:#111827;
+        --nav-input-text:#F9FAFB;
+        --nav-placeholder:#D1D5DB;
+        --nav-expander-bg:rgba(15,23,42,0.92);
+    }
+}
+
+/* ==========================================================
+   Sidebar menu title and caption
+   ========================================================== */
+section[data-testid="stSidebar"] .sidebar-nav-title{
     font-size:18px;
     font-weight:800;
     margin-top:4px;
-    margin-bottom:8px;
+    margin-bottom:6px;
     letter-spacing:0.2px;
+    color:var(--nav-title-text) !important;
 }
 
-.sidebar-nav-caption{
+section[data-testid="stSidebar"] .sidebar-nav-caption{
     font-size:12px;
-    color:#6B7280;
+    color:var(--nav-muted-text) !important;
     margin-bottom:10px;
     line-height:1.35;
 }
 
-.section-title{
-    font-size:30px;
-    font-weight:700;
-    margin-top:25px;
-    margin-bottom:15px;
+/* ==========================================================
+   Expander group headings
+   ========================================================== */
+section[data-testid="stSidebar"] details{
+    background:var(--nav-expander-bg) !important;
+    border:1px solid var(--nav-panel-border) !important;
+    border-radius:10px !important;
+    margin-bottom:8px !important;
+}
+
+section[data-testid="stSidebar"] details summary,
+section[data-testid="stSidebar"] details summary *,
+section[data-testid="stSidebar"] details p{
+    color:var(--nav-title-text) !important;
+    font-weight:700 !important;
+}
+
+/* ==========================================================
+   Page links
+   ========================================================== */
+section[data-testid="stSidebar"] a,
+section[data-testid="stSidebar"] a *,
+section[data-testid="stSidebar"] [data-testid="stPageLink-NavLink"],
+section[data-testid="stSidebar"] [data-testid="stPageLink-NavLink"] *{
+    color:var(--nav-link-text) !important;
+    text-decoration:none !important;
+    font-weight:600 !important;
+}
+
+section[data-testid="stSidebar"] [data-testid="stPageLink-NavLink"]:hover{
+    background:var(--nav-link-hover-bg) !important;
+    border-radius:8px !important;
+}
+
+/* ==========================================================
+   Filter title and multiselect visibility
+   Fixes "Choose options" readability in dark mode.
+   ========================================================== */
+section[data-testid="stSidebar"] h1,
+section[data-testid="stSidebar"] h2,
+section[data-testid="stSidebar"] h3,
+section[data-testid="stSidebar"] label,
+section[data-testid="stSidebar"] label *,
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"],
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] *{
+    color:var(--nav-filter-text) !important;
+}
+
+/* Multiselect/select control */
+section[data-testid="stSidebar"] [data-baseweb="select"] > div{
+    background-color:var(--nav-input-bg) !important;
+    color:var(--nav-input-text) !important;
+    border-color:var(--nav-panel-border) !important;
+}
+
+section[data-testid="stSidebar"] [data-baseweb="select"] input,
+section[data-testid="stSidebar"] [data-baseweb="select"] div,
+section[data-testid="stSidebar"] [data-baseweb="select"] span{
+    color:var(--nav-input-text) !important;
+}
+
+section[data-testid="stSidebar"] [data-baseweb="select"] input::placeholder{
+    color:var(--nav-placeholder) !important;
+    opacity:1 !important;
+}
+
+/* Dropdown menu items */
+div[data-baseweb="popover"] *,
+ul[role="listbox"] *,
+li[role="option"] *{
+    color:var(--nav-input-text) !important;
 }
 
 </style>
 """,
-    unsafe_allow_html=True
-)
-
-# ==========================================================
-# DASHBOARD VISUAL POLISH ADDITIONS
-# ==========================================================
-
-apply_dashboard_style()
-
-# ==========================================================
-# DATA LOADING
-# ==========================================================
-
-@st.cache_data
-def load_data():
-
-    master = pd.read_csv(
-        "data/clean_master.csv"
+        unsafe_allow_html=True
     )
 
-    multiselect = pd.read_csv(
-        "data/multiselect_dataset.csv"
-    )
+    def page_link(page, label):
 
-    indices = pd.read_csv(
-        "data/indices_dataset.csv"
-    )
+        try:
 
-    themes = pd.read_csv(
-        "data/theme_dataset.csv"
-    )
-
-    benchmark = pd.read_csv(
-        "data/benchmark_dataset.csv"
-    )
-
-    return master, multiselect, indices, themes, benchmark
-
-
-try:
-
-    (
-        master_df,
-        multi_df,
-        indices_df,
-        theme_df,
-        benchmark_df
-    ) = load_data()
-
-except Exception as e:
-
-    st.error(
-        f"Dataset Loading Error: {e}"
-    )
-
-    st.stop()
-
-master_df = clean_master_dataset(
-    master_df
-)
-
-# ==========================================================
-# COLUMN DETECTION
-# ==========================================================
-
-agency_col = next(
-    (
-        c for c in master_df.columns
-        if "agency" in c.lower()
-    ),
-    None
-)
-
-position_col = next(
-    (
-        c for c in master_df.columns
-        if "position" in c.lower()
-    ),
-    None
-)
-
-level_col = next(
-    (
-        c for c in master_df.columns
-        if "level" in c.lower()
-    ),
-    None
-)
-
-# ==========================================================
-# VALIDATION
-# ==========================================================
-
-if agency_col is None:
-
-    st.error(
-        "Agency column could not be detected in clean_master.csv."
-    )
-
-    st.stop()
-
-# ==========================================================
-# HELPER FUNCTIONS
-# ==========================================================
-
-def safe_mean(df, column):
-
-    try:
-
-        if column not in df.columns:
-            return 0
-
-        values = pd.to_numeric(
-            df[column],
-            errors="coerce"
-        ).dropna()
-
-        if len(values) == 0:
-            return 0
-
-        return round(
-            values.mean(),
-            1
-        )
-
-    except Exception:
-        return 0
-
-
-def safe_numeric(df, columns):
-
-    df = df.copy()
-
-    for col in columns:
-
-        if col in df.columns:
-
-            df[col] = pd.to_numeric(
-                df[col],
-                errors="coerce"
+            st.page_link(
+                page,
+                label=label
             )
 
-    return df
+        except Exception:
 
+            st.markdown(
+                f"- {label}"
+            )
 
-def comma_list(values):
+    def is_group(group_pages):
 
-    clean_values = [
-        str(v)
-        for v in values
-        if pd.notna(v)
+        return current_page in group_pages
+
+    executive_pages = [
+        "Executive Dashboard",
+        "Respondent Profile"
     ]
 
-    return ", ".join(
-        sorted(clean_values)
-    )
-
-
-def gauge_chart(title, value):
-
-    fig = go.Figure(
-        go.Indicator(
-            mode="gauge+number",
-            value=value,
-            number={
-                "suffix": "%",
-                "font": {
-                    "size": 42
-                }
-            },
-            title={
-                "text": title,
-                "font": {
-                    "size": 18
-                }
-            },
-            domain={
-                "x": [0.05, 0.95],
-                "y": [0.05, 0.95]
-            },
-            gauge={
-                "axis": {
-                    "range": [0, 100],
-                    "tickfont": {
-                        "size": 12
-                    }
-                },
-                "bar": {
-                    "color": "#2563EB",
-                    "thickness": 0.25
-                },
-                "steps": [
-                    {
-                        "range": [0, 40],
-                        "color": "#FEE2E2"
-                    },
-                    {
-                        "range": [40, 60],
-                        "color": "#FEF3C7"
-                    },
-                    {
-                        "range": [60, 80],
-                        "color": "#DBEAFE"
-                    },
-                    {
-                        "range": [80, 100],
-                        "color": "#DCFCE7"
-                    }
-                ]
-            }
-        )
-    )
-
-    fig.update_layout(
-        height=360,
-        margin=dict(
-            l=30,
-            r=30,
-            t=70,
-            b=30
-        )
-    )
-
-    return fig
-
-
-def round_display_columns(df, columns, decimals=1):
-
-    df = df.copy()
-
-    for col in columns:
-
-        if col in df.columns:
-
-            df[col] = pd.to_numeric(
-                df[col],
-                errors="coerce"
-            ).round(decimals)
-
-    return df
-
-def wrap_label(value, width=30):
-
-    text = str(value)
-
-    wrapped = textwrap.wrap(
-        text,
-        width=width,
-        break_long_words=False,
-        break_on_hyphens=False
-    )
-
-    if not wrapped:
-        return text
-
-    return "<br>".join(
-        wrapped
-    )
-
-
-def shorten_strategic_theme(label):
-
-    return wrap_label(
-        label,
-        width=28
-    )
-
-
-def shorten_work_level(label):
-
-    return wrap_label(
-        label,
-        width=32
-    )
-
-
-def apply_readable_donut_layout(fig, height=560):
-    """
-    Makes donut/pie charts readable in normal dashboard view and PDF export.
-    Percentages stay inside slices and full labels are wrapped in the legend
-    instead of being truncated.
-    """
-
-    fig.update_traces(
-        textinfo="percent",
-        textposition="inside",
-        insidetextorientation="radial",
-        hovertemplate="%{label}<br>%{percent}<extra></extra>"
-    )
-
-    fig.update_layout(
-        height=height,
-        showlegend=True,
-        margin=dict(
-            l=20,
-            r=20,
-            t=70,
-            b=180
-        ),
-        legend=dict(
-            orientation="h",
-            yanchor="top",
-            y=-0.22,
-            xanchor="center",
-            x=0.50,
-            font=dict(
-                size=10
-            )
-        ),
-        uniformtext_minsize=10,
-        uniformtext_mode="show"
-    )
-
-    return fig
-
-# ==========================================================
-# PREPARE ANALYSIS DATA
-# ==========================================================
-
-master_df = master_df.reset_index(
-    drop=True
-)
-
-indices_df = indices_df.reset_index(
-    drop=True
-)
-
-available_index_cols = [
-    col for col in INDEX_COLS
-    if col in indices_df.columns
-]
-
-indices_df = safe_numeric(
-    indices_df,
-    available_index_cols
-)
-
-analysis_df = pd.concat(
-    [
-        master_df,
-        indices_df[available_index_cols]
-    ],
-    axis=1
-)
-
-
-
-# ==========================================================
-# GROUPED SIDEBAR NAVIGATION
-# ==========================================================
-
-def sidebar_page_link(page, label):
-
-    try:
-
-        st.page_link(
-            page,
-            label=label
-        )
-
-    except Exception:
-
-        st.markdown(
-            f"- {label}"
-        )
-
-
-st.sidebar.markdown(
-    "<div class='sidebar-nav-title'>▦ Dashboard Menu</div>",
-    unsafe_allow_html=True
-)
-
-st.sidebar.markdown(
-    "<div class='sidebar-nav-caption'>Grouped pages are shown below. Open a section to move to another dashboard page.</div>",
-    unsafe_allow_html=True
-)
-
-with st.sidebar.expander(
-    "▤ Executive Overview",
-    expanded=True
-):
-
-    sidebar_page_link(
-        "Executive Dashboard.py",
-        "▦ Executive Dashboard"
-    )
-
-    sidebar_page_link(
-        "pages/01_Respondent_Profile.py",
-        "☷ Respondent Profile"
-    )
-
-
-with st.sidebar.expander(
-    "◇ Maturity Analysis",
-    expanded=False
-):
-
-    sidebar_page_link(
-        "pages/02_Data_Maturity_Analysis.py",
-        "◈ Data Maturity Analysis"
-    )
-
-    sidebar_page_link(
-        "pages/03_Forecasting_Maturity.py",
-        "⌁ Forecasting Maturity Analysis"
-    )
-
-    sidebar_page_link(
-        "pages/04_Reconstruction_Readiness.py",
-        "▱ Reconstruction Readiness Analysis"
-    )
-
-    sidebar_page_link(
-        "pages/05_Digital_Readiness.py",
-        "◌ Digital Readiness Analysis"
-    )
-
-
-with st.sidebar.expander(
-    "⊞ Question Analytics",
-    expanded=False
-):
-
-    sidebar_page_link(
-        "pages/06_Data_Practices_Questions.py",
-        "☰ Data Practices Questions"
-    )
-
-    sidebar_page_link(
-        "pages/07_Forecasting_Questions.py",
-        "⌕ Forecasting Questions"
-    )
-
-    sidebar_page_link(
-        "pages/08_Reconstruction_and_Modelling_Questions.py",
-        "◇ Reconstruction & Modelling Questions"
-    )
-
-    sidebar_page_link(
-        "pages/09_Digital_Readiness_Questions.py",
-        "◍ Digital Readiness Questions"
-    )
-
-
-with st.sidebar.expander(
-    "✧ Strategic Insights",
-    expanded=False
-):
-
-    sidebar_page_link(
-        "pages/10_Open_Ended_Insights.py",
-        "◆ Open Ended Insights"
-    )
-
-    sidebar_page_link(
-        "pages/11_Benchmarking_and_Gap_Analysis.py",
-        "▧ Benchmarking & Gap Analysis"
-    )
-
-    sidebar_page_link(
-        "pages/12_Strategic_Roadmap.py",
-        "⌂ Strategic Roadmap"
-    )
-
-    sidebar_page_link(
-        "pages/13_Key_Findings_and_Recommendations.py",
-        "★ Key Findings & Recommendations"
-    )
-
-
-st.sidebar.divider()
-
-# ==========================================================
-# SIDEBAR FILTERS
-# ==========================================================
-
-st.sidebar.header(
-    "▣ Filters"
-)
-
-selected_agencies = st.sidebar.multiselect(
-    "Agency",
-    sorted(
-        analysis_df[agency_col]
-        .dropna()
-        .unique()
-    )
-)
-
-selected_positions = []
-
-if position_col:
-
-    selected_positions = st.sidebar.multiselect(
-        "Position",
-        sorted(
-            analysis_df[position_col]
-            .dropna()
-            .unique()
-        )
-    )
-
-# ==========================================================
-# APPLY FILTERS
-# ==========================================================
-
-filtered_df = analysis_df.copy()
-
-if selected_agencies:
-
-    filtered_df = filtered_df[
-        filtered_df[agency_col]
-        .isin(selected_agencies)
+    maturity_pages = [
+        "Data Maturity Analysis",
+        "Forecasting Maturity Analysis",
+        "Reconstruction Readiness Analysis",
+        "Digital Readiness Analysis"
     ]
 
-if position_col and selected_positions:
-
-    filtered_df = filtered_df[
-        filtered_df[position_col]
-        .isin(selected_positions)
+    question_pages = [
+        "Data Practices Questions",
+        "Forecasting Questions",
+        "Reconstruction & Modelling Questions",
+        "Digital Readiness Questions"
     ]
 
-if filtered_df.empty:
-
-    st.warning(
-        "No records found for the selected filters."
-    )
-
-    st.stop()
-
-# ==========================================================
-# CORE KPIs
-# ==========================================================
-
-responses = len(
-    filtered_df
-)
-
-agencies = (
-    filtered_df[agency_col]
-    .nunique()
-)
-
-positions = (
-    filtered_df[position_col]
-    .nunique()
-    if position_col
-    else 0
-)
-
-agency_names = comma_list(
-    master_df[agency_col]
-    .dropna()
-    .unique()
-)
-
-dmi = safe_mean(
-    filtered_df,
-    "DMI"
-)
-
-fmi = safe_mean(
-    filtered_df,
-    "FMI"
-)
-
-rri = safe_mean(
-    filtered_df,
-    "RRI"
-)
-
-dri = safe_mean(
-    filtered_df,
-    "DRI"
-)
-
-maturity_scores = {
-    "Data Maturity": dmi,
-    "Forecasting Maturity": fmi,
-    "Reconstruction Readiness": rri,
-    "Digital Readiness": dri
-}
-
-strongest_maturity_area = max(
-    maturity_scores,
-    key=maturity_scores.get
-)
-
-weakest_maturity_area = min(
-    maturity_scores,
-    key=maturity_scores.get
-)
-
-# ==========================================================
-# BENCHMARK DATA PREPARATION
-# ==========================================================
-
-benchmark_df = benchmark_df.copy()
-
-benchmark_numeric_cols = [
-    "Overall_Score",
-    "DMI",
-    "FMI",
-    "RRI",
-    "DRI"
-]
-
-benchmark_df = safe_numeric(
-    benchmark_df,
-    benchmark_numeric_cols
-)
-
-if "Agency" in benchmark_df.columns and "Overall_Score" in benchmark_df.columns:
-
-    benchmark_display_df = (
-        benchmark_df
-        .dropna(
-            subset=[
-                "Agency",
-                "Overall_Score"
-            ]
-        )
-        .sort_values(
-            "Overall_Score",
-            ascending=False
-        )
-        .drop_duplicates(
-            subset=[
-                "Agency"
-            ],
-            keep="first"
-        )
-        .reset_index(drop=True)
-    )
-
-    benchmark_display_df["Display_Rank"] = (
-        benchmark_display_df.index + 1
-    )
-
-    benchmark_display_df = round_display_columns(
-        benchmark_display_df,
-        benchmark_numeric_cols,
-        decimals=1
-    )
-
-else:
-
-    benchmark_display_df = pd.DataFrame()
-
-if not benchmark_display_df.empty:
-
-    benchmark_agencies = (
-        benchmark_display_df["Agency"]
-        .nunique()
-    )
-
-    average_overall_score = round(
-        benchmark_display_df["Overall_Score"].mean(),
-        1
-    )
-
-    top_agency = benchmark_display_df.loc[
-        benchmark_display_df["Overall_Score"].idxmax(),
-        "Agency"
+    strategic_pages = [
+        "Open Ended Insights",
+        "Benchmarking & Gap Analysis",
+        "Strategic Roadmap",
+        "Key Findings & Recommendations"
     ]
 
-    top_score = benchmark_display_df["Overall_Score"].max()
-
-    lowest_agency = benchmark_display_df.loc[
-        benchmark_display_df["Overall_Score"].idxmin(),
-        "Agency"
-    ]
-
-    lowest_score = benchmark_display_df["Overall_Score"].min()
-
-else:
-
-    benchmark_agencies = 0
-    average_overall_score = 0
-    top_agency = "Not Available"
-    top_score = 0
-    lowest_agency = "Not Available"
-    lowest_score = 0
-
-# ==========================================================
-# STRATEGIC THEME ANALYSIS
-# ==========================================================
-
-strategic_theme_results = []
-
-for col in theme_df.columns:
-
-    if col in STRATEGIC_THEME_DISPLAY_NAMES:
-
-        mentions = pd.to_numeric(
-            theme_df[col],
-            errors="coerce"
-        ).fillna(0).sum()
-
-        strategic_theme_results.append({
-            "Theme":
-                STRATEGIC_THEME_DISPLAY_NAMES[col],
-            "Mentions":
-                int(mentions)
-        })
-
-strategic_theme_summary = pd.DataFrame(
-    strategic_theme_results
-)
-
-strategic_theme_groups = len(
-    STRATEGIC_THEME_DISPLAY_NAMES
-)
-
-dominant_strategic_theme = "Not Available"
-
-if not strategic_theme_summary.empty:
-
-    dominant_strategic_theme = (
-        strategic_theme_summary
-        .sort_values(
-            "Mentions",
-            ascending=False
-        )
-        .iloc[0]["Theme"]
+    st.sidebar.markdown(
+        "<div class='sidebar-nav-title'>▦ Dashboard Menu</div>",
+        unsafe_allow_html=True
     )
 
-# ==========================================================
-# OPERATIONAL THEME ANALYSIS
-# ==========================================================
-
-operational_theme_count = len(
-    THEME_KEYWORDS
-)
-
-dominant_operational_theme = "Not Available"
-
-try:
-
-    available_text_columns = [
-        col for col in TEXT_COLUMNS
-        if col in filtered_df.columns
-    ]
-
-    if available_text_columns:
-
-        operational_theme_df = build_theme_dataset(
-            df=filtered_df,
-            text_columns=available_text_columns,
-            agency_column=agency_col
-        )
-
-        if not operational_theme_df.empty:
-
-            dominant_operational_theme = (
-                operational_theme_df["Theme"]
-                .value_counts()
-                .idxmax()
-            )
-
-except Exception:
-
-    dominant_operational_theme = "Not Available"
-
-# ==========================================================
-# HERO
-# ==========================================================
-
-st.markdown(
-    """
-<div style='text-align:center'>
-<div class='hero-badge'>
-📋 DOCTORAL RESEARCH
-</div>
-</div>
-""",
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    """
-<div class='hero-title'>
-Pavement Performance<br>
-Management under Data<br>
-Constraints
-</div>
-""",
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    """
-<div class='hero-subtitle'>
-Perspectives of Practitioners in Kenya
-</div>
-""",
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    f"""
-<div class='hero-description'>
-Based on {responses} practitioner responses from {agencies} road-sector agencies
-</div>
-""",
-    unsafe_allow_html=True
-)
-
-st.divider()
-
-# ==========================================================
-# RESEARCH OVERVIEW
-# ==========================================================
-
-st.markdown(
-    f"""
-<div class='scope-box'>
-
-<h3>Research Overview</h3>
-
-<ul>
-<li><b>Survey Responses:</b> {responses}</li>
-<li><b>Agencies Represented:</b> {agency_names}</li>
-<li><b>Respondent Positions Captured:</b> {positions}</li>
-<li><b>Main Survey Domains:</b> Data Practices, Forecasting, Reconstruction & Modelling, Digital Readiness, and Open-Ended Insights</li>
-<li><b>Open-ended Questions Analysed:</b> Q27 and Q28</li>
-<li><b>Study Focus:</b> Pavement Performance Management Under Data Constraints</li>
-</ul>
-
-</div>
-""",
-    unsafe_allow_html=True
-)
-
-# ==========================================================
-# EXECUTIVE FINDINGS
-# ==========================================================
-
-st.markdown(
-    f"""
-<div class='findings-box'>
-
-<h4>Executive Findings</h4>
-
-<ul>
-
-<li>
-<b>{responses}</b> practitioners participated across
-<b>{agencies}</b> road-sector agencies.
-</li>
-
-<li>
-The weakest maturity area is
-<b>{weakest_maturity_area}</b>, indicating the need to strengthen
-data systems, data quality and institutional data practices.
-</li>
-
-<li>
-The strongest maturity area is
-<b>{strongest_maturity_area}</b>, suggesting relatively stronger
-readiness in that dimension.
-</li>
-
-<li>
-The current benchmark leader is
-<b>{top_agency}</b> with an overall score of
-<b>{top_score:.1f}</b>.
-</li>
-
-<li>
-Qualitative responses show that the dominant operational theme is
-<b>{dominant_operational_theme}</b>.
-</li>
-
-<li>
-The overall strategic priority is to improve data systems,
-forecasting capability, digital transformation, institutional capacity
-and evidence-based road asset management.
-</li>
-
-</ul>
-
-</div>
-""",
-    unsafe_allow_html=True
-)
-
-# ==========================================================
-# EXECUTIVE KPI SUMMARY
-# ==========================================================
-
-st.markdown(
-    "<div class='section-title'>Executive KPI Summary</div>",
-    unsafe_allow_html=True
-)
-
-k1, k2, k3, k4 = st.columns(4)
-
-k1.metric(
-    "Respondents",
-    responses
-)
-
-k2.metric(
-    "Agencies",
-    agencies
-)
-
-k3.metric(
-    "Positions",
-    positions
-)
-
-k4.metric(
-    "Average Overall Score",
-    average_overall_score
-)
-
-k5, k6, k7, k8 = st.columns(4)
-
-k5.metric(
-    "DMI",
-    dmi
-)
-
-k6.metric(
-    "FMI",
-    fmi
-)
-
-k7.metric(
-    "RRI",
-    rri
-)
-
-k8.metric(
-    "DRI",
-    dri
-)
-
-# ==========================================================
-# MATURITY OVERVIEW
-# ==========================================================
-
-st.markdown(
-    "<div class='section-title'>Maturity Overview</div>",
-    unsafe_allow_html=True
-)
-
-maturity_df = pd.DataFrame({
-    "Maturity Dimension": list(
-        maturity_scores.keys()
-    ),
-    "Score": list(
-        maturity_scores.values()
-    )
-})
-
-fig_maturity = px.bar(
-    maturity_df.sort_values(
-        "Score",
-        ascending=True
-    ),
-    x="Score",
-    y="Maturity Dimension",
-    orientation="h",
-    text="Score",
-    color="Maturity Dimension",
-    color_discrete_sequence=COLOR_SEQUENCE,
-    title="National Maturity Overview"
-)
-
-fig_maturity.update_layout(
-    xaxis_title="Average Score",
-    yaxis_title="Maturity Dimension",
-    xaxis=dict(
-        range=[
-            0,
-            100
-        ],
-        automargin=True,
-        title_standoff=20
-    ),
-    yaxis=dict(
-        automargin=True,
-        title_standoff=20
-    ),
-    height=480,
-    showlegend=False,
-    margin=dict(
-        l=70,
-        r=100,
-        t=80,
-        b=90
-    )
-)
-
-fig_maturity.update_traces(
-    texttemplate="%{text:.1f}",
-    textposition="outside",
-    cliponaxis=False
-)
-
-st.plotly_chart(
-    fig_maturity,
-    use_container_width=True
-)
-
-st.caption(
-    "Takeaway: Data Maturity is the main priority improvement area, while Reconstruction Readiness is the strongest maturity dimension."
-)
-
-c1, c2 = st.columns(2)
-
-with c1:
-
-    st.success(
-        f"Strongest Maturity Area: {strongest_maturity_area} ({maturity_scores[strongest_maturity_area]:.1f})"
+    st.sidebar.markdown(
+        "<div class='sidebar-nav-caption'>Grouped pages are shown below. Open a section to move across the dashboard.</div>",
+        unsafe_allow_html=True
     )
 
-with c2:
-
-    st.error(
-        f"Priority Improvement Area: {weakest_maturity_area} ({maturity_scores[weakest_maturity_area]:.1f})"
-    )
-
-# ==========================================================
-# INDEX GAUGES
-# ==========================================================
-
-st.markdown(
-    "### Maturity Index Gauges"
-)
-
-g1, g2 = st.columns(2)
-
-with g1:
-
-    st.plotly_chart(
-        gauge_chart(
-            "Data Maturity Index (DMI)",
-            dmi
-        ),
-        use_container_width=True
-    )
-
-with g2:
-
-    st.plotly_chart(
-        gauge_chart(
-            "Forecasting Maturity Index (FMI)",
-            fmi
-        ),
-        use_container_width=True
-    )
-
-g3, g4 = st.columns(2)
-
-with g3:
-
-    st.plotly_chart(
-        gauge_chart(
-            "Reconstruction Readiness Index (RRI)",
-            rri
-        ),
-        use_container_width=True
-    )
-
-with g4:
-
-    st.plotly_chart(
-        gauge_chart(
-            "Digital Readiness Index (DRI)",
-            dri
-        ),
-        use_container_width=True
-    )
-
-st.caption(
-    "Takeaway: The four maturity gauges provide a quick comparison of the core maturity dimensions used in the assessment."
-)
-
-# ==========================================================
-# SURVEY DOMAIN OVERVIEW
-# ==========================================================
-
-st.markdown(
-    "<div class='section-title'>Survey Domain Overview</div>",
-    unsafe_allow_html=True
-)
-
-domain_df = pd.DataFrame({
-    "Survey Domain": [
-        "Respondent Profile",
-        "Data Practices",
-        "Forecasting Practices",
-        "Reconstruction & Modelling",
-        "Digital Readiness",
-        "Open-Ended Insights"
-    ],
-    "Main Questions": [
-        "Q1–Q4",
-        "Q5–Q15",
-        "Q16–Q19",
-        "Q20–Q22",
-        "Q23–Q26",
-        "Q27–Q28"
-    ],
-    "Purpose": [
-        "Establishes respondent and agency background.",
-        "Assesses data availability, collection, storage, governance and use.",
-        "Assesses forecasting methods, confidence, barriers and decision support.",
-        "Assesses readiness to use reconstructed or model-estimated condition data.",
-        "Assesses familiarity with databases, AI, analytics and MCDA tools.",
-        "Captures practitioner priorities, constraints and recommendations."
-    ]
-})
-
-st.dataframe(
-    domain_df,
-    use_container_width=True,
-    hide_index=True
-)
-
-st.caption(
-    "Takeaway: The survey structure moves from respondent background to maturity drivers, technical readiness and open-ended practitioner insights."
-)
-
-# ==========================================================
-# BENCHMARK SNAPSHOT
-# ==========================================================
-
-st.markdown(
-    "<div class='section-title'>Benchmark Snapshot</div>",
-    unsafe_allow_html=True
-)
-
-b1, b2, b3, b4 = st.columns(4)
-
-b1.metric(
-    "Agencies Benchmarked",
-    benchmark_agencies
-)
-
-b2.metric(
-    "Benchmark Leader",
-    top_agency
-)
-
-b3.metric(
-    "Highest Score",
-    round(
-        top_score,
-        1
-    )
-)
-
-b4.metric(
-    "Lowest Score",
-    round(
-        lowest_score,
-        1
-    )
-)
-
-if not benchmark_display_df.empty:
-
-    benchmark_summary = benchmark_display_df[
-        [
-            "Display_Rank",
-            "Agency",
-            "Overall_Score",
-            "DMI",
-            "FMI",
-            "RRI",
-            "DRI"
-        ]
-    ].copy()
-
-    benchmark_summary = benchmark_summary.rename(
-        columns={
-            "Display_Rank": "Rank",
-            "Overall_Score": "Overall Score"
-        }
-    )
-
-    st.dataframe(
-        benchmark_summary,
-        use_container_width=True,
-        hide_index=True
-    )
-
-    st.caption(
-        "Takeaway: Benchmarking gives a concise interim view of agency positioning and maturity scores."
-    )
-
-# ==========================================================
-# RESPONDENT AND AGENCY OVERVIEW
-# ==========================================================
-
-st.markdown(
-    "<div class='section-title'>Respondent and Agency Overview</div>",
-    unsafe_allow_html=True
-)
-
-col1, col2 = st.columns(2)
-
-with col1:
-
-    st.markdown(
-        "### Agency Distribution"
-    )
-
-    agency_counts = (
-        filtered_df[agency_col]
-        .value_counts()
-        .reset_index()
-    )
-
-    agency_counts.columns = [
-        "Agency",
-        "Responses"
-    ]
-
-    fig_agency = px.pie(
-        agency_counts,
-        names="Agency",
-        values="Responses",
-        hole=0.55,
-        title="Distribution of Responses by Agency",
-        color_discrete_sequence=ALT_COLOR_SEQUENCE
-    )
-
-    fig_agency = apply_readable_donut_layout(
-        fig_agency,
-        height=530
-    )
-
-    st.plotly_chart(
-        fig_agency,
-        use_container_width=True
-    )
-
-    st.caption(
-        "Takeaway: The agency distribution shows the spread of survey participation across the road-sector agencies."
-    )
-
-with col2:
-
-    if level_col:
-
-        st.markdown(
-            "### Work Level Distribution"
-        )
-
-        level_counts = (
-            filtered_df[level_col]
-            .value_counts()
-            .reset_index()
-        )
-
-        level_counts.columns = [
-            "Work Level",
-            "Responses"
-        ]
-
-        level_counts["Display Work Level"] = level_counts[
-            "Work Level"
-        ].apply(
-            shorten_work_level
-        )
-
-        fig_level = px.bar(
-            level_counts,
-            x="Responses",
-            y="Display Work Level",
-            orientation="h",
-            color="Display Work Level",
-            text="Responses",
-            custom_data=[
-                "Work Level"
-            ],
-            color_discrete_sequence=COLOR_SEQUENCE,
-            title="Respondents by Work Level"
-        )
-
-        fig_level.update_layout(
-            height=560,
-            showlegend=False,
-            xaxis_title="Responses",
-            yaxis_title="Work Level",
-            margin=dict(
-                l=45,
-                r=95,
-                t=80,
-                b=90
-            ),
-            xaxis=dict(
-                automargin=True,
-                title_standoff=20
-            ),
-            yaxis=dict(
-                automargin=True
-            )
-        )
-
-        fig_level.update_traces(
-            texttemplate="%{text}",
-            textposition="outside",
-            cliponaxis=False,
-            hovertemplate=(
-                "Work Level: %{customdata[0]}<br>"
-                "Responses: %{x}<extra></extra>"
-            )
-        )
-
-        st.plotly_chart(
-            fig_level,
-            use_container_width=True
-        )
-
-        st.caption(
-            "Takeaway: Work-level distribution helps show whether responses reflect both national coordination and implementation perspectives."
-        )
-
-# ==========================================================
-# QUALITATIVE INSIGHTS SNAPSHOT
-# ==========================================================
-
-st.markdown(
-    "<div class='section-title'>Qualitative Insights Snapshot</div>",
-    unsafe_allow_html=True
-)
-
-q1, q2 = st.columns(2)
-
-q1.metric(
-    "Strategic Theme Groups",
-    strategic_theme_groups
-)
-
-q2.metric(
-    "Operational Themes",
-    operational_theme_count
-)
-
-st.markdown(
-    f"""
-<div class='theme-highlight-box'>
-<b>Dominant Operational Theme:</b>
-{dominant_operational_theme}
-</div>
-""",
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    """
-<div class='note-box'>
-<b>Theme Framework Note:</b>
-The Executive Dashboard summarises qualitative findings using six
-strategic theme groups. The Open Ended Insights page provides the
-detailed operational theme breakdown from Q27 and Q28.
-</div>
-""",
-    unsafe_allow_html=True
-)
-
-# ==========================================================
-# STRATEGIC THEME FREQUENCY
-# ==========================================================
-
-if not strategic_theme_summary.empty:
-
-    strategic_theme_summary["Display Theme"] = strategic_theme_summary["Theme"].apply(
-        shorten_strategic_theme
-    )
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        st.markdown(
-            "### Strategic Theme Frequency"
-        )
-
-        fig_theme = px.bar(
-            strategic_theme_summary.sort_values(
-                "Mentions",
-                ascending=True
-            ),
-            x="Mentions",
-            y="Display Theme",
-            orientation="h",
-            color="Theme",
-            custom_data=[
-                "Theme",
-                "Mentions"
-            ],
-            color_discrete_sequence=THEME_COLOR_SEQUENCE,
-            title="Strategic Theme Group Mentions"
-        )
-
-        fig_theme.update_layout(
-            height=520,
-            xaxis_title="Mentions",
-            yaxis_title="Strategic Theme Group",
-            showlegend=False,
-            margin=dict(
-                l=40,
-                r=80,
-                t=80,
-                b=90
-            ),
-            xaxis=dict(
-                automargin=True,
-                title_standoff=20
-            ),
-            yaxis=dict(
-                automargin=True,
-                title_standoff=20
-            )
-        )
-
-        fig_theme.update_traces(
-            hovertemplate=(
-                "Theme: %{customdata[0]}<br>"
-                "Mentions: %{customdata[1]}<extra></extra>"
-            ),
-            cliponaxis=False
-        )
-
-        st.plotly_chart(
-            fig_theme,
-            use_container_width=True
-        )
-
-        st.caption(
-            "Takeaway: Strategic theme frequency highlights the main areas practitioners emphasise for strengthening pavement performance management."
-        )
-
-    with col2:
-
-        st.markdown(
-            "### Strategic Theme Distribution"
-        )
-
-        total_mentions = strategic_theme_summary[
-            "Mentions"
-        ].sum()
-
-        if total_mentions > 0:
-
-            strategic_theme_summary["Percentage"] = (
-                strategic_theme_summary["Mentions"]
-                /
-                total_mentions
-                *
-                100
-            )
-
-            fig_theme_pct = px.pie(
-                strategic_theme_summary,
-                names="Display Theme",
-                values="Percentage",
-                hole=0.60,
-                title="Strategic Theme Group Share",
-                color_discrete_sequence=THEME_COLOR_SEQUENCE
-            )
-
-            fig_theme_pct = apply_readable_donut_layout(
-                fig_theme_pct,
-                height=640
-            )
-
-            st.plotly_chart(
-                fig_theme_pct,
-                use_container_width=True
-            )
-
-            st.caption(
-                "Takeaway: Theme share summarises how practitioner priorities are distributed across the strategic theme groups."
-            )
-
-# ==========================================================
-# DATASET HEALTH
-# ==========================================================
-
-st.markdown(
-    "<div class='section-title'>Dataset Health</div>",
-    unsafe_allow_html=True
-)
-
-with st.expander(
-    "View Dataset Health and Data Quality Summary",
-    expanded=False
-):
-
-    health_df = pd.DataFrame({
-        "Dataset": [
-            "Clean Master",
-            "Multi-Select",
-            "Theme Dataset",
-            "Benchmark Dataset",
-            "Indices Dataset"
-        ],
-        "Records": [
-            len(master_df),
-            len(multi_df),
-            len(theme_df),
-            len(benchmark_df),
-            len(indices_df)
-        ]
-    })
-
-    st.dataframe(
-        health_df,
-        use_container_width=True,
-        hide_index=True
-    )
-
-    st.markdown(
-        "### Data Quality Summary"
-    )
-
-    dq_df = pd.DataFrame({
-        "Metric": [
-            "Unique Agencies",
-            "Unique Positions"
-        ],
-        "Value": [
-            master_df[agency_col].nunique(),
-            master_df[position_col].nunique()
-            if position_col
-            else 0
-        ]
-    })
-
-    st.dataframe(
-        dq_df,
-        use_container_width=True,
-        hide_index=True
-    )
-
-# ==========================================================
-# EXECUTIVE INTERPRETATION
-# ==========================================================
-
-st.markdown(
-    "<div class='section-title'>Executive Interpretation</div>",
-    unsafe_allow_html=True
-)
-
-st.info(f"""
-### Overall Research Interpretation
-
-The survey assessed pavement performance management under data constraints
-across **{agencies} participating road-sector agencies** and **{responses}
-practitioner responses**.
-
-The quantitative results show that **{weakest_maturity_area}** is the main
-priority improvement area, while **{strongest_maturity_area}** is the strongest
-maturity dimension.
-
-The benchmarking results currently identify **{top_agency}** as the leading
-agency, with an overall benchmark score of **{top_score:.1f}**. Final rankings
-will be refreshed after the survey closes and the validated dataset is updated.
-
-The question-level analysis explains the maturity results by examining data
-practices, forecasting practices, reconstruction and modelling readiness, and
-digital readiness across agencies.
-
-The qualitative findings from Q27 and Q28 provide additional context by showing
-that practitioners emphasize digital transformation, stronger data systems,
-forecasting capability, capacity building, funding, institutional coordination
-and evidence-based road asset management.
-
-Overall, the dashboard provides a decision-support framework for identifying
-sector-wide maturity gaps, agency-level priorities and practical improvement
-pathways for pavement performance management in Kenya.
-""")
-
-# ==========================================================
-# NEXT PAGE HINT
-# ==========================================================
-
-st.divider()
-
-try:
-
-    st.page_link(
-        "pages/01_Respondent_Profile.py",
-        label="Next suggested page: Respondent Profile Analysis",
-        icon="➡️"
-    )
-
-except Exception:
-
-    st.caption(
-        "Next suggested page: Respondent Profile Analysis →"
-    )
-
-# ==========================================================
-# DEVELOPER DIAGNOSTICS
-# ==========================================================
-
-if DEVELOPER_MODE:
-
-    with st.expander(
-        "Developer Diagnostics"
+    with st.sidebar.expander(
+        "▤ Executive Overview",
+        expanded=is_group(executive_pages)
     ):
 
-        st.write(
-            "Master Columns",
-            master_df.columns
+        page_link(
+            "Executive Dashboard.py",
+            "▦ Executive Dashboard"
         )
 
-        st.write(
-            "Theme Columns",
-            theme_df.columns
+        page_link(
+            "pages/01_Respondent_Profile.py",
+            "☷ Respondent Profile"
         )
 
-        st.write(
-            "Indices Columns",
-            indices_df.columns
+    with st.sidebar.expander(
+        "◇ Maturity Analysis",
+        expanded=is_group(maturity_pages)
+    ):
+
+        page_link(
+            "pages/02_Data_Maturity_Analysis.py",
+            "◈ Data Maturity Analysis"
         )
 
-        st.write(
-            "Benchmark Columns",
-            benchmark_df.columns
+        page_link(
+            "pages/03_Forecasting_Maturity.py",
+            "⌁ Forecasting Maturity Analysis"
         )
 
-        st.markdown(
-            "### Index Diagnostics"
+        page_link(
+            "pages/04_Reconstruction_Readiness.py",
+            "▱ Reconstruction Readiness Analysis"
         )
 
-        diag_df = index_diagnostics(
-            indices_df
+        page_link(
+            "pages/05_Digital_Readiness.py",
+            "◌ Digital Readiness Analysis"
         )
 
-        st.dataframe(
-            diag_df,
-            use_container_width=True
+    with st.sidebar.expander(
+        "⊞ Question Analytics",
+        expanded=is_group(question_pages)
+    ):
+
+        page_link(
+            "pages/06_Data_Practices_Questions.py",
+            "☰ Data Practices Questions"
         )
+
+        page_link(
+            "pages/07_Forecasting_Questions.py",
+            "⌕ Forecasting Questions"
+        )
+
+        page_link(
+            "pages/08_Reconstruction_and_Modelling_Questions.py",
+            "◇ Reconstruction & Modelling Questions"
+        )
+
+        page_link(
+            "pages/09_Digital_Readiness_Questions.py",
+            "◍ Digital Readiness Questions"
+        )
+
+    with st.sidebar.expander(
+        "✧ Strategic Insights",
+        expanded=is_group(strategic_pages)
+    ):
+
+        page_link(
+            "pages/10_Open_Ended_Insights.py",
+            "◆ Open Ended Insights"
+        )
+
+        page_link(
+            "pages/11_Benchmarking_and_Gap_Analysis.py",
+            "▧ Benchmarking & Gap Analysis"
+        )
+
+        page_link(
+            "pages/12_Strategic_Roadmap.py",
+            "⌂ Strategic Roadmap"
+        )
+
+        page_link(
+            "pages/13_Key_Findings_and_Recommendations.py",
+            "★ Key Findings & Recommendations"
+        )
+
+    st.sidebar.divider()
