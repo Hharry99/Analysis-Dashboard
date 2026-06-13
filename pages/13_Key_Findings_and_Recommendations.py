@@ -8,6 +8,8 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
+from utils.dashboard_style import apply_dashboard_style
+
 # ==========================================================
 # PAGE CONFIG
 # ==========================================================
@@ -105,6 +107,12 @@ div[data-testid="metric-container"]{
 """,
     unsafe_allow_html=True
 )
+
+# ==========================================================
+# DASHBOARD VISUAL POLISH ADDITIONS
+# ==========================================================
+
+apply_dashboard_style()
 
 # ==========================================================
 # LOAD DATA
