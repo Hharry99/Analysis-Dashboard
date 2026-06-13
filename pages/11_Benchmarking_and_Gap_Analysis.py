@@ -358,7 +358,7 @@ def format_score_dataframe(df_in, score_cols=None):
 
             df_out[col] = pd.to_numeric(
                 df_out[col],
-                errors="ignore"
+                errors="coerce"
             )
 
     return df_out
