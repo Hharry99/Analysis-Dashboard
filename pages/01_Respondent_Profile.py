@@ -5,6 +5,7 @@
 # ==========================================================
 
 import streamlit as st
+import textwrap
 import pandas as pd
 import plotly.express as px
 
@@ -71,37 +72,6 @@ div[data-testid="metric-container"]{
 # ==========================================================
 
 apply_dashboard_style()
-
-# ==========================================================
-# SIDEBAR NAVIGATION GUIDE
-# ==========================================================
-
-st.sidebar.markdown(
-    """
-    <div style="font-size:13px; line-height:1.45; margin-bottom:12px;">
-    <b>Dashboard Navigation Groups</b><br>
-    <b>Executive Overview</b><br>
-    • Executive Dashboard<br>
-    • Respondent Profile<br><br>
-    <b>Maturity Analysis</b><br>
-    • Data Maturity<br>
-    • Forecasting Maturity<br>
-    • Reconstruction Readiness<br>
-    • Digital Readiness<br><br>
-    <b>Question Analytics</b><br>
-    • Data Practices Questions<br>
-    • Forecasting Questions<br>
-    • Reconstruction & Modelling Questions<br>
-    • Digital Readiness Questions<br><br>
-    <b>Strategic Insights</b><br>
-    • Open Ended Insights<br>
-    • Benchmarking & Gap Analysis<br>
-    • Strategic Roadmap<br>
-    • Key Findings & Recommendations
-    </div>
-    """,
-    unsafe_allow_html=True
-)
 
 # ==========================================================
 # LOAD DATA
@@ -221,32 +191,38 @@ def sort_experience_categories(exp_df):
     return exp_df
 
 
-def shorten_label(value, max_length=34):
+def wrap_label(value, width=34):
 
     text = str(value)
 
-    if len(text) > max_length:
-        return text[:max_length - 3] + "..."
+    wrapped = textwrap.wrap(
+        text,
+        width=width,
+        break_long_words=False,
+        break_on_hyphens=False
+    )
 
-    return text
+    if not wrapped:
+        return text
+
+    return "<br>".join(
+        wrapped
+    )
+
+
+def shorten_label(value, max_length=34):
+
+    return wrap_label(
+        value,
+        width=max_length
+    )
 
 
 def shorten_work_level(label):
 
-    label_map = {
-        "Regional office (regional work planning, implementation)":
-            "Regional office",
-
-        "Headquarters (national coordination)":
-            "Headquarters",
-
-        "Hybrid":
-            "Hybrid"
-    }
-
-    return label_map.get(
-        str(label),
-        str(label)
+    return wrap_label(
+        label,
+        width=34
     )
 
 
@@ -285,17 +261,18 @@ def apply_readable_horizontal_bar_layout(fig, height=540):
         height=height,
         showlegend=False,
         margin=dict(
-            l=40,
-            r=90,
-            t=70,
-            b=80
+            l=60,
+            r=105,
+            t=80,
+            b=90
         ),
         xaxis=dict(
             automargin=True,
             title_standoff=20
         ),
         yaxis=dict(
-            automargin=True
+            automargin=True,
+            title_standoff=20
         )
     )
 
@@ -433,8 +410,14 @@ agency_display_df["Percentage"] = (
     .map(lambda x: f"{x:.1f}%")
 )
 
-st.table(
-    agency_display_df
+st.dataframe(
+    agency_display_df,
+    use_container_width=True,
+    hide_index=True,
+    height=min(
+        300,
+        36 * len(agency_display_df) + 40
+    )
 )
 
 # ==========================================================
@@ -552,7 +535,7 @@ position_counts["Display Position"] = (
     .apply(
         lambda x: shorten_label(
             x,
-            max_length=38
+            max_length=42
         )
     )
 )
@@ -599,7 +582,7 @@ fig_position.update_traces(
 
 fig_position = apply_readable_horizontal_bar_layout(
     fig_position,
-    height=700
+    height=780
 )
 
 st.plotly_chart(
@@ -702,8 +685,14 @@ summary_df = pd.DataFrame({
     ]
 })
 
-st.table(
-    summary_df
+st.dataframe(
+    summary_df,
+    use_container_width=True,
+    hide_index=True,
+    height=min(
+        260,
+        36 * len(summary_df) + 40
+    )
 )
 
 # ==========================================================
@@ -721,7 +710,8 @@ with st.expander(
 
     st.dataframe(
         agency_counts,
-        use_container_width=True
+        use_container_width=True,
+        hide_index=True
     )
 
     st.markdown(
@@ -730,7 +720,8 @@ with st.expander(
 
     st.dataframe(
         level_counts,
-        use_container_width=True
+        use_container_width=True,
+        hide_index=True
     )
 
     st.markdown(
@@ -739,7 +730,8 @@ with st.expander(
 
     st.dataframe(
         position_counts,
-        use_container_width=True
+        use_container_width=True,
+        hide_index=True
     )
 
     st.markdown(
@@ -748,7 +740,8 @@ with st.expander(
 
     st.dataframe(
         exp_counts,
-        use_container_width=True
+        use_container_width=True,
+        hide_index=True
     )
 
 # ==========================================================
