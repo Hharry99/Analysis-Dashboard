@@ -30,7 +30,7 @@ from utils.data_cleaning import (
 from utils.theme_coder import build_theme_dataset
 from utils.theme_dictionary import THEME_KEYWORDS
 
-from utils.dashboard_style import apply_dashboard_style
+from utils.dashboard_style import apply_dashboard_style, render_status_line
 
 # ==========================================================
 # PAGE CONFIG
@@ -783,9 +783,7 @@ Based on {responses} practitioner responses from {agencies} road-sector agencies
     unsafe_allow_html=True
 )
 
-st.caption(
-    "🔵 INTERIM DATASET · 🟢 FRAMEWORK ALIGNED · 🟠 FINAL REFRESH PENDING · 🟣 EXECUTIVE OVERVIEW"
-)
+render_status_line()
 
 st.divider()
 
