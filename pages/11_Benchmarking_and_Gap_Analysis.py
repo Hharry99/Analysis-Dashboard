@@ -4,6 +4,7 @@
 # Strategic Capability Visual Improved
 # ==========================================================
 
+import html
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -52,6 +53,43 @@ st.markdown(
     border-radius:10px;
     margin-top:15px;
     margin-bottom:20px;
+}
+
+
+.compact-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+    line-height:1.35;
+    margin-top:8px;
+    margin-bottom:18px;
+}
+
+.compact-table th{
+    text-align:left;
+    padding:8px 10px;
+    border-bottom:1px solid rgba(128,128,128,0.35);
+    background:rgba(15,23,42,0.04);
+    font-weight:700;
+}
+
+.compact-table td{
+    padding:8px 10px;
+    border-bottom:1px solid rgba(128,128,128,0.22);
+    vertical-align:top;
+    white-space:normal;
+    word-break:normal;
+    overflow-wrap:break-word;
+}
+
+.compact-table .num{
+    text-align:right;
+    white-space:nowrap;
+}
+
+.compact-table .center{
+    text-align:center;
+    white-space:nowrap;
 }
 
 .note-box{
@@ -189,20 +227,79 @@ def round_columns(df, cols, decimals=1):
     return df
 
 
-def shorten_dimension(label):
+def render_compact_table(df_in, numeric_columns=None, max_rows=None):
 
-    label_map = {
-        "Data Systems & Databases": "Data Systems",
-        "Routine Data Collection": "Data Collection",
-        "Forecasting, AI & Analytics": "Forecasting & AI",
-        "Capacity Building & Training": "Capacity Building",
-        "Institutional Coordination & Policy": "Institutional Coordination",
-        "Funding & Resource Allocation": "Funding"
-    }
+    numeric_columns = numeric_columns or []
 
-    return label_map.get(
-        label,
-        label
+    df_out = df_in.copy()
+
+    if max_rows is not None:
+
+        df_out = df_out.head(max_rows)
+
+    headers = "".join(
+        f"<th>{html.escape(str(col))}</th>"
+        for col in df_out.columns
+    )
+
+    html_rows = []
+
+    for _, row in df_out.iterrows():
+
+        cells = []
+
+        for col in df_out.columns:
+
+            value = html.escape(
+                str(row[col])
+            )
+
+            css_class = (
+                "num"
+                if col in numeric_columns
+                else ""
+            )
+
+            cells.append(
+                f"<td class='{css_class}'>{value}</td>"
+            )
+
+        html_rows.append(
+            "<tr>" + "".join(cells) + "</tr>"
+        )
+
+    table_html = (
+        "<table class='compact-table'>"
+        "<thead><tr>"
+        + headers
+        + "</tr></thead>"
+        "<tbody>"
+        + "".join(html_rows)
+        + "</tbody></table>"
+    )
+
+    st.markdown(
+        table_html,
+        unsafe_allow_html=True
+    )
+
+
+def build_code_key(labels, prefix, label_column):
+
+    key_rows = []
+
+    for idx, label in enumerate(
+        labels,
+        start=1
+    ):
+
+        key_rows.append({
+            "Code": f"{prefix}{idx}",
+            label_column: label
+        })
+
+    return pd.DataFrame(
+        key_rows
     )
 
 
@@ -241,18 +338,18 @@ def apply_readable_grouped_bar_layout(fig, height=760):
         height=height,
         margin=dict(
             l=80,
-            r=110,
+            r=115,
             t=80,
-            b=155
+            b=120
         ),
         legend=dict(
             orientation="h",
             yanchor="top",
-            y=-0.18,
+            y=-0.12,
             xanchor="center",
             x=0.50,
             font=dict(
-                size=10
+                size=11
             )
         ),
         xaxis=dict(
@@ -312,15 +409,15 @@ def apply_readable_radar_layout(fig, height=720):
     return fig
 
 
-def apply_readable_heatmap_layout(fig, height=560, xangle=-20):
+def apply_readable_heatmap_layout(fig, height=560, xangle=0):
 
     fig.update_layout(
         height=height,
         margin=dict(
-            l=75,
+            l=80,
             r=40,
             t=80,
-            b=125
+            b=80
         ),
         xaxis=dict(
             automargin=True,
@@ -743,16 +840,34 @@ if available_strategic_cols:
         decimals=1
     )
 
+    strategic_dimensions = [
+        col for col in strategic_df.columns
+        if col != "Agency"
+    ]
+
+    strategic_dimension_key_df = build_code_key(
+        strategic_dimensions,
+        prefix="S",
+        label_column="Full Strategic Capability Dimension"
+    )
+
+    strategic_dimension_code_map = dict(
+        zip(
+            strategic_dimension_key_df["Full Strategic Capability Dimension"],
+            strategic_dimension_key_df["Code"]
+        )
+    )
+
     strategic_long_df = strategic_df.melt(
         id_vars="Agency",
         var_name="Strategic Capability Dimension",
         value_name="Score"
     )
 
-    strategic_long_df["Short Dimension"] = strategic_long_df[
+    strategic_long_df["Dimension Code"] = strategic_long_df[
         "Strategic Capability Dimension"
-    ].apply(
-        shorten_dimension
+    ].map(
+        strategic_dimension_code_map
     )
 
     st.markdown(
@@ -767,11 +882,21 @@ The heatmap is retained below as a compact scorecard.
         unsafe_allow_html=True
     )
 
+    st.markdown(
+        "#### Strategic Capability Code Key"
+    )
+
+    render_compact_table(
+        strategic_dimension_key_df,
+        numeric_columns=[],
+        max_rows=None
+    )
+
     fig_strategic_bar = px.bar(
         strategic_long_df,
         x="Score",
         y="Agency",
-        color="Short Dimension",
+        color="Dimension Code",
         barmode="group",
         text="Score",
         orientation="h",
@@ -797,7 +922,7 @@ The heatmap is retained below as a compact scorecard.
             automargin=True,
             title_standoff=20
         ),
-        legend_title_text="Strategic Capability"
+        legend_title_text="Strategic Capability Code"
     )
 
     fig_strategic_bar.update_traces(
@@ -815,7 +940,7 @@ The heatmap is retained below as a compact scorecard.
     )
 
     st.caption(
-        "Takeaway: The grouped bar chart highlights agency-level capability differences across the six strategic dimensions."
+        "Takeaway: The grouped bar chart uses strategic capability codes to keep the chart readable. Full dimension names are shown in the key above."
     )
 
     strategic_heatmap_df = strategic_df.copy()
@@ -825,10 +950,7 @@ The heatmap is retained below as a compact scorecard.
     )
 
     strategic_heatmap_df = strategic_heatmap_df.rename(
-        columns={
-            col: shorten_dimension(col)
-            for col in strategic_heatmap_df.columns
-        }
+        columns=strategic_dimension_code_map
     )
 
     strategic_min = strategic_heatmap_df.min().min()
@@ -844,7 +966,7 @@ The heatmap is retained below as a compact scorecard.
         aspect="auto",
         title="Strategic Capability Scorecard",
         labels=dict(
-            x="Strategic Capability Dimension",
+            x="Strategic capability code",
             y="Agency",
             color="Score"
         ),
@@ -855,14 +977,14 @@ The heatmap is retained below as a compact scorecard.
     )
 
     fig_heat.update_layout(
-        xaxis_title="Strategic Capability Dimension",
+        xaxis_title="Strategic capability code",
         yaxis_title="Agency"
     )
 
     fig_heat = apply_readable_heatmap_layout(
         fig_heat,
-        height=610,
-        xangle=-20
+        height=520,
+        xangle=0
     )
 
     st.plotly_chart(
@@ -871,7 +993,7 @@ The heatmap is retained below as a compact scorecard.
     )
 
     st.caption(
-        "Takeaway: The scorecard gives a compact view of strategic capability strengths and weaknesses by agency."
+        "Takeaway: The scorecard uses the same strategic capability codes shown in the key above."
     )
 
 # ==========================================================
@@ -978,6 +1100,15 @@ priority_display_df = format_score_dataframe(
     ]
 )
 
+priority_display_df.insert(
+    0,
+    "No.",
+    range(
+        1,
+        len(priority_display_df) + 1
+    )
+)
+
 st.dataframe(
     priority_display_df,
     use_container_width=True,
@@ -1020,6 +1151,10 @@ with st.expander(
 
         st.markdown(
             "### Strategic Capability Matrix"
+        )
+
+        st.caption(
+            "Strategic capability columns use the codes shown in the Strategic Capability Code Key above."
         )
 
         st.dataframe(
