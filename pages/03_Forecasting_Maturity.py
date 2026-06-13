@@ -82,6 +82,37 @@ div[data-testid="metric-container"]{
 apply_dashboard_style()
 
 # ==========================================================
+# SIDEBAR NAVIGATION GUIDE
+# ==========================================================
+
+st.sidebar.markdown(
+    """
+    <div style="font-size:13px; line-height:1.45; margin-bottom:12px;">
+    <b>Dashboard Navigation Groups</b><br>
+    <b>Executive Overview</b><br>
+    • Executive Dashboard<br>
+    • Respondent Profile<br><br>
+    <b>Maturity Analysis</b><br>
+    • Data Maturity<br>
+    • Forecasting Maturity<br>
+    • Reconstruction Readiness<br>
+    • Digital Readiness<br><br>
+    <b>Question Analytics</b><br>
+    • Data Practices Questions<br>
+    • Forecasting Questions<br>
+    • Reconstruction & Modelling Questions<br>
+    • Digital Readiness Questions<br><br>
+    <b>Strategic Insights</b><br>
+    • Open Ended Insights<br>
+    • Benchmarking & Gap Analysis<br>
+    • Strategic Roadmap<br>
+    • Key Findings & Recommendations
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+# ==========================================================
 # LOAD DATA
 # ==========================================================
 
@@ -192,6 +223,92 @@ def add_percentage(df_in, count_col):
         df_out["Percentage"] = 0
 
     return df_out
+
+
+def apply_readable_histogram_layout(fig, height=540):
+
+    fig.update_layout(
+        height=height,
+        bargap=0.10,
+        margin=dict(
+            l=60,
+            r=40,
+            t=80,
+            b=120
+        ),
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.22,
+            xanchor="center",
+            x=0.50
+        ),
+        legend_title_text="Maturity Band",
+        xaxis=dict(
+            automargin=True,
+            title_standoff=20
+        ),
+        yaxis=dict(
+            automargin=True,
+            title_standoff=20
+        )
+    )
+
+    return fig
+
+
+def apply_readable_vertical_bar_layout(fig, height=540):
+
+    fig.update_layout(
+        height=height,
+        showlegend=False,
+        margin=dict(
+            l=60,
+            r=70,
+            t=80,
+            b=90
+        ),
+        xaxis=dict(
+            automargin=True,
+            title_standoff=20
+        ),
+        yaxis=dict(
+            automargin=True,
+            title_standoff=20
+        )
+    )
+
+    fig.update_traces(
+        texttemplate="%{text:.1f}",
+        textposition="outside",
+        cliponaxis=False
+    )
+
+    return fig
+
+
+def apply_readable_heatmap_layout(fig, height=360):
+
+    fig.update_layout(
+        height=height,
+        margin=dict(
+            l=60,
+            r=40,
+            t=80,
+            b=80
+        ),
+        xaxis=dict(
+            automargin=True,
+            title_standoff=20
+        ),
+        yaxis=dict(
+            automargin=True,
+            title_standoff=20
+        ),
+        coloraxis_showscale=False
+    )
+
+    return fig
 
 # ==========================================================
 # PREPARE DATA
@@ -426,15 +543,21 @@ fig_hist = px.histogram(
 
 fig_hist.update_layout(
     xaxis_title="Forecasting Maturity Index",
-    yaxis_title="Number of Responses",
-    height=480,
-    bargap=0.10,
-    legend_title_text="Maturity Band"
+    yaxis_title="Number of Responses"
+)
+
+fig_hist = apply_readable_histogram_layout(
+    fig_hist,
+    height=540
 )
 
 st.plotly_chart(
     fig_hist,
     use_container_width=True
+)
+
+st.caption(
+    "Takeaway: The distribution shows that forecasting maturity varies across respondents, with several responses falling in the developing and higher maturity ranges."
 )
 
 # ==========================================================
@@ -463,20 +586,28 @@ fig_agency.update_layout(
         range=[
             0,
             100
-        ]
+        ],
+        automargin=True,
+        title_standoff=20
     ),
-    height=520,
-    showlegend=False
+    xaxis=dict(
+        automargin=True,
+        title_standoff=20
+    )
 )
 
-fig_agency.update_traces(
-    texttemplate="%{text:.1f}",
-    textposition="outside"
+fig_agency = apply_readable_vertical_bar_layout(
+    fig_agency,
+    height=540
 )
 
 st.plotly_chart(
     fig_agency,
     use_container_width=True
+)
+
+st.caption(
+    "Takeaway: MTRD records the highest average FMI, while KURA records the lowest average FMI among the participating agencies."
 )
 
 # ==========================================================
@@ -511,9 +642,8 @@ ranking_df = ranking_df.rename(
     }
 )
 
-st.dataframe(
-    ranking_df,
-    use_container_width=True
+st.table(
+    ranking_df
 )
 
 # ==========================================================
@@ -548,16 +678,22 @@ fig_heatmap = px.imshow(
     title="Forecasting Maturity Heatmap by Agency",
     color_continuous_scale=HEATMAP_SCALE,
     zmin=0,
-    zmax=100
+    zmax=100,
+    text_auto=".1f"
 )
 
-fig_heatmap.update_layout(
-    height=450
+fig_heatmap = apply_readable_heatmap_layout(
+    fig_heatmap,
+    height=360
 )
 
 st.plotly_chart(
     fig_heatmap,
     use_container_width=True
+)
+
+st.caption(
+    "Takeaway: The heatmap provides a compact scorecard view of agency-level FMI performance."
 )
 
 # ==========================================================
@@ -626,3 +762,24 @@ Agency-level differences highlight opportunities for targeted capacity building,
 improved historical data availability and stronger integration of forecasting
 outputs into maintenance planning, budgeting and investment decision-making.
 """)
+
+# ==========================================================
+# NEXT PAGE HINT
+# ==========================================================
+
+st.divider()
+
+try:
+
+    st.page_link(
+        "pages/04_Reconstruction_Readiness.py",
+        label="Next suggested page: Reconstruction Readiness",
+        icon="➡️"
+    )
+
+except Exception:
+
+    st.caption(
+        "Next suggested page: Reconstruction Readiness →"
+    )
+
