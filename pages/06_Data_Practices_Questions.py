@@ -54,6 +54,43 @@ st.markdown(
     margin-bottom:20px;
 }
 
+
+.compact-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+    line-height:1.35;
+    margin-top:8px;
+    margin-bottom:18px;
+}
+
+.compact-table th{
+    text-align:left;
+    padding:8px 10px;
+    border-bottom:1px solid rgba(128,128,128,0.35);
+    background:rgba(15,23,42,0.04);
+    font-weight:700;
+}
+
+.compact-table td{
+    padding:8px 10px;
+    border-bottom:1px solid rgba(128,128,128,0.22);
+    vertical-align:top;
+    white-space:normal;
+    word-break:normal;
+    overflow-wrap:break-word;
+}
+
+.compact-table .num{
+    text-align:right;
+    white-space:nowrap;
+}
+
+.compact-table .center{
+    text-align:center;
+    white-space:nowrap;
+}
+
 .question-box{
     border-left:5px solid #2563EB;
     background:rgba(37,99,235,0.08);
@@ -242,7 +279,7 @@ def apply_readable_heatmap_layout(fig, height=600):
             l=80,
             r=40,
             t=80,
-            b=170
+            b=80
         ),
         xaxis=dict(
             automargin=True,
@@ -270,6 +307,80 @@ def make_display_table(df_in, response_col="Response", max_length=72):
         )
 
     return df_out
+
+
+def render_compact_table(df_in, numeric_columns=None, max_rows=None):
+
+    numeric_columns = numeric_columns or []
+
+    df_out = df_in.copy()
+
+    if max_rows is not None:
+
+        df_out = df_out.head(max_rows)
+
+    html_rows = []
+
+    headers = "".join(
+        f"<th>{str(col)}</th>"
+        for col in df_out.columns
+    )
+
+    for _, row in df_out.iterrows():
+
+        cells = []
+
+        for col in df_out.columns:
+
+            value = row[col]
+
+            css_class = (
+                "num"
+                if col in numeric_columns
+                else ""
+            )
+
+            cells.append(
+                f"<td class='{css_class}'>{str(value)}</td>"
+            )
+
+        html_rows.append(
+            "<tr>" + "".join(cells) + "</tr>"
+        )
+
+    table_html = (
+        "<table class='compact-table'>"
+        "<thead><tr>"
+        + headers
+        + "</tr></thead>"
+        "<tbody>"
+        + "".join(html_rows)
+        + "</tbody></table>"
+    )
+
+    st.markdown(
+        table_html,
+        unsafe_allow_html=True
+    )
+
+
+def build_response_key(responses):
+
+    key_rows = []
+
+    for idx, response in enumerate(
+        responses,
+        start=1
+    ):
+
+        key_rows.append({
+            "Code": f"R{idx}",
+            "Full Response Category": response
+        })
+
+    return pd.DataFrame(
+        key_rows
+    )
 
 # ==========================================================
 # QUESTION MAP
@@ -762,16 +873,19 @@ try:
         ]
     ]
 
-    display_columns = {
-        col: shorten_label(
-            col,
-            max_length=28
+    response_key_df = build_response_key(
+        list(cross_df.columns)
+    )
+
+    response_code_map = dict(
+        zip(
+            response_key_df["Full Response Category"],
+            response_key_df["Code"]
         )
-        for col in cross_df.columns
-    }
+    )
 
     cross_df = cross_df.rename(
-        columns=display_columns
+        columns=response_code_map
     )
 
     fig2 = px.imshow(
@@ -779,7 +893,7 @@ try:
         aspect="auto",
         title="Response Heatmap by Agency",
         labels=dict(
-            x="Response",
+            x="Response category code",
             y="Agency",
             color="Count"
         ),
@@ -787,9 +901,13 @@ try:
         text_auto=True
     )
 
+    fig2.update_xaxes(
+        tickangle=0
+    )
+
     fig2 = apply_readable_heatmap_layout(
         fig2,
-        height=610
+        height=500
     )
 
     st.plotly_chart(
@@ -798,7 +916,17 @@ try:
     )
 
     st.caption(
-        "Takeaway: The heatmap compares the strongest response categories across agencies using wrapped full labels for readability."
+        "Takeaway: The heatmap uses response category codes to avoid congested labels. The full response names are shown in the key below."
+    )
+
+    st.markdown(
+        "#### Response Category Key"
+    )
+
+    render_compact_table(
+        response_key_df,
+        numeric_columns=[],
+        max_rows=None
     )
 
 except Exception as e:
@@ -830,14 +958,23 @@ summary_display_df = make_display_table(
     max_length=72
 )
 
-st.dataframe(
-    summary_display_df,
-    use_container_width=True,
-    hide_index=True,
-    height=min(
-        380,
-        36 * len(summary_display_df) + 40
+summary_display_df.insert(
+    0,
+    "No.",
+    range(
+        1,
+        len(summary_display_df) + 1
     )
+)
+
+render_compact_table(
+    summary_display_df,
+    numeric_columns=[
+        "No.",
+        "Count",
+        "Percentage"
+    ],
+    max_rows=None
 )
 
 # ==========================================================
@@ -881,14 +1018,22 @@ with st.expander(
             ]
         )
 
-        st.dataframe(
-            agency_response_df,
-            use_container_width=True,
-            hide_index=True,
-            height=min(
-                420,
-                35 * len(agency_response_df) + 40
+        agency_response_df.insert(
+            0,
+            "No.",
+            range(
+                1,
+                len(agency_response_df) + 1
             )
+        )
+
+        render_compact_table(
+            agency_response_df,
+            numeric_columns=[
+                "No.",
+                "Count"
+            ],
+            max_rows=None
         )
 
     except Exception:
