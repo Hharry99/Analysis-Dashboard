@@ -882,6 +882,15 @@ with st.expander(
         roadmap_rows
     )
 
+    roadmap_df.insert(
+        0,
+        "No.",
+        range(
+            1,
+            len(roadmap_df) + 1
+        )
+    )
+
     st.markdown(
         "### Roadmap Actions"
     )
