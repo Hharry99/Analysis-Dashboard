@@ -73,6 +73,37 @@ div[data-testid="metric-container"]{
 apply_dashboard_style()
 
 # ==========================================================
+# SIDEBAR NAVIGATION GUIDE
+# ==========================================================
+
+st.sidebar.markdown(
+    """
+    <div style="font-size:13px; line-height:1.45; margin-bottom:12px;">
+    <b>Dashboard Navigation Groups</b><br>
+    <b>Executive Overview</b><br>
+    • Executive Dashboard<br>
+    • Respondent Profile<br><br>
+    <b>Maturity Analysis</b><br>
+    • Data Maturity<br>
+    • Forecasting Maturity<br>
+    • Reconstruction Readiness<br>
+    • Digital Readiness<br><br>
+    <b>Question Analytics</b><br>
+    • Data Practices Questions<br>
+    • Forecasting Questions<br>
+    • Reconstruction & Modelling Questions<br>
+    • Digital Readiness Questions<br><br>
+    <b>Strategic Insights</b><br>
+    • Open Ended Insights<br>
+    • Benchmarking & Gap Analysis<br>
+    • Strategic Roadmap<br>
+    • Key Findings & Recommendations
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+# ==========================================================
 # LOAD DATA
 # ==========================================================
 
@@ -189,6 +220,93 @@ def sort_experience_categories(exp_df):
 
     return exp_df
 
+
+def shorten_label(value, max_length=34):
+
+    text = str(value)
+
+    if len(text) > max_length:
+        return text[:max_length - 3] + "..."
+
+    return text
+
+
+def shorten_work_level(label):
+
+    label_map = {
+        "Regional office (regional work planning, implementation)":
+            "Regional office",
+
+        "Headquarters (national coordination)":
+            "Headquarters",
+
+        "Hybrid":
+            "Hybrid"
+    }
+
+    return label_map.get(
+        str(label),
+        str(label)
+    )
+
+
+def apply_readable_donut_layout(fig, height=560):
+
+    fig.update_traces(
+        textinfo="percent+label",
+        textposition="inside",
+        insidetextorientation="radial",
+        hovertemplate=(
+            "Category: %{label}<br>"
+            "Responses: %{value}<br>"
+            "Share: %{percent}<extra></extra>"
+        )
+    )
+
+    fig.update_layout(
+        height=height,
+        showlegend=False,
+        margin=dict(
+            l=20,
+            r=20,
+            t=70,
+            b=40
+        ),
+        uniformtext_minsize=10,
+        uniformtext_mode="show"
+    )
+
+    return fig
+
+
+def apply_readable_horizontal_bar_layout(fig, height=540):
+
+    fig.update_layout(
+        height=height,
+        showlegend=False,
+        margin=dict(
+            l=40,
+            r=90,
+            t=70,
+            b=80
+        ),
+        xaxis=dict(
+            automargin=True,
+            title_standoff=20
+        ),
+        yaxis=dict(
+            automargin=True
+        )
+    )
+
+    fig.update_traces(
+        texttemplate="%{text}",
+        textposition="outside",
+        cliponaxis=False
+    )
+
+    return fig
+
 # ==========================================================
 # PAGE HEADER
 # ==========================================================
@@ -298,13 +416,9 @@ fig_agency = px.pie(
     color_discrete_sequence=ALT_COLOR_SEQUENCE
 )
 
-fig_agency.update_traces(
-    textinfo="percent+label"
-)
-
-fig_agency.update_layout(
-    height=520,
-    legend_title_text="Agency"
+fig_agency = apply_readable_donut_layout(
+    fig_agency,
+    height=560
 )
 
 st.plotly_chart(
@@ -312,9 +426,15 @@ st.plotly_chart(
     use_container_width=True
 )
 
-st.dataframe(
-    agency_counts,
-    use_container_width=True
+agency_display_df = agency_counts.copy()
+
+agency_display_df["Percentage"] = (
+    agency_display_df["Percentage"]
+    .map(lambda x: f"{x:.1f}%")
+)
+
+st.table(
+    agency_display_df
 )
 
 # ==========================================================
@@ -343,16 +463,28 @@ level_counts = add_percentage(
     "Respondents"
 )
 
+level_counts["Display Work Level"] = (
+    level_counts["Work Level"]
+    .apply(
+        shorten_work_level
+    )
+)
+
+level_chart_df = level_counts.sort_values(
+    "Respondents",
+    ascending=True
+)
+
 fig_level = px.bar(
-    level_counts.sort_values(
-        "Respondents",
-        ascending=True
-    ),
+    level_chart_df,
     x="Respondents",
-    y="Work Level",
+    y="Display Work Level",
     orientation="h",
     text="Respondents",
-    color="Work Level",
+    color="Display Work Level",
+    custom_data=[
+        "Work Level"
+    ],
     color_discrete_sequence=COLOR_SEQUENCE,
     title="Respondents by Work Level"
 )
@@ -360,12 +492,27 @@ fig_level = px.bar(
 fig_level.update_layout(
     xaxis_title="Number of Respondents",
     yaxis_title="Work Level",
-    height=480,
-    showlegend=False
+    xaxis=dict(
+        range=[
+            0,
+            max(
+                5,
+                level_chart_df["Respondents"].max() * 1.18
+            )
+        ]
+    )
 )
 
 fig_level.update_traces(
-    textposition="outside"
+    hovertemplate=(
+        "Work Level: %{customdata[0]}<br>"
+        "Respondents: %{x}<extra></extra>"
+    )
+)
+
+fig_level = apply_readable_horizontal_bar_layout(
+    fig_level,
+    height=520
 )
 
 st.plotly_chart(
@@ -400,16 +547,31 @@ position_counts = add_percentage(
     "Respondents"
 )
 
+position_counts["Display Position"] = (
+    position_counts["Position"]
+    .apply(
+        lambda x: shorten_label(
+            x,
+            max_length=38
+        )
+    )
+)
+
+position_chart_df = position_counts.sort_values(
+    "Respondents",
+    ascending=True
+)
+
 fig_position = px.bar(
-    position_counts.sort_values(
-        "Respondents",
-        ascending=True
-    ),
+    position_chart_df,
     x="Respondents",
-    y="Position",
+    y="Display Position",
     orientation="h",
     text="Respondents",
-    color="Position",
+    color="Display Position",
+    custom_data=[
+        "Position"
+    ],
     color_discrete_sequence=POSITION_COLOR_SEQUENCE,
     title="Top Positions Represented"
 )
@@ -417,12 +579,27 @@ fig_position = px.bar(
 fig_position.update_layout(
     xaxis_title="Number of Respondents",
     yaxis_title="Position",
-    height=650,
-    showlegend=False
+    xaxis=dict(
+        range=[
+            0,
+            max(
+                5,
+                position_chart_df["Respondents"].max() * 1.20
+            )
+        ]
+    )
 )
 
 fig_position.update_traces(
-    textposition="outside"
+    hovertemplate=(
+        "Position: %{customdata[0]}<br>"
+        "Respondents: %{x}<extra></extra>"
+    )
+)
+
+fig_position = apply_readable_horizontal_bar_layout(
+    fig_position,
+    height=700
 )
 
 st.plotly_chart(
@@ -473,12 +650,27 @@ fig_exp = px.bar(
 fig_exp.update_layout(
     xaxis_title="Years of Experience",
     yaxis_title="Number of Respondents",
-    height=480,
-    showlegend=False
+    height=520,
+    showlegend=False,
+    margin=dict(
+        l=50,
+        r=60,
+        t=70,
+        b=90
+    ),
+    xaxis=dict(
+        automargin=True,
+        title_standoff=20
+    ),
+    yaxis=dict(
+        automargin=True
+    )
 )
 
 fig_exp.update_traces(
-    textposition="outside"
+    texttemplate="%{text}",
+    textposition="outside",
+    cliponaxis=False
 )
 
 st.plotly_chart(
@@ -510,9 +702,8 @@ summary_df = pd.DataFrame({
     ]
 })
 
-st.dataframe(
-    summary_df,
-    use_container_width=True
+st.table(
+    summary_df
 )
 
 # ==========================================================
@@ -607,3 +798,24 @@ The respondent profile provides a diverse representation of stakeholders
 involved in pavement management, road asset management, maintenance planning,
 technical assessment and institutional decision-making.
 """)
+
+# ==========================================================
+# NEXT PAGE HINT
+# ==========================================================
+
+st.divider()
+
+try:
+
+    st.page_link(
+        "pages/02_Data_Maturity_Analysis.py",
+        label="Next suggested page: Data Maturity Analysis",
+        icon="➡️"
+    )
+
+except Exception:
+
+    st.caption(
+        "Next suggested page: Data Maturity Analysis →"
+    )
+
