@@ -246,6 +246,49 @@ def render_roadmap_card(title, period, items, color):
         unsafe_allow_html=True
     )
 
+
+def apply_readable_horizontal_bar_layout(fig, height=500):
+
+    fig.update_layout(
+        height=height,
+        showlegend=False,
+        margin=dict(
+            l=70,
+            r=105,
+            t=80,
+            b=90
+        ),
+        xaxis=dict(
+            automargin=True,
+            title_standoff=20
+        ),
+        yaxis=dict(
+            automargin=True,
+            title_standoff=20
+        )
+    )
+
+    fig.update_traces(
+        textposition="outside",
+        cliponaxis=False
+    )
+
+    return fig
+
+
+def format_priority_dataframe(df_in):
+
+    df_out = df_in.copy()
+
+    if "Score" in df_out.columns:
+
+        df_out["Score"] = pd.to_numeric(
+            df_out["Score"],
+            errors="coerce"
+        ).round(1)
+
+    return df_out
+
 # ==========================================================
 # CLEAN AND STANDARDIZE BENCHMARK DATA
 # ==========================================================
@@ -542,20 +585,32 @@ fig_profile.update_layout(
         range=[
             0,
             100
-        ]
+        ],
+        automargin=True,
+        title_standoff=20
     ),
-    height=460,
-    showlegend=False
+    yaxis=dict(
+        automargin=True,
+        title_standoff=20
+    )
 )
 
 fig_profile.update_traces(
-    texttemplate="%{text:.1f}",
-    textposition="outside"
+    texttemplate="%{text:.1f}"
+)
+
+fig_profile = apply_readable_horizontal_bar_layout(
+    fig_profile,
+    height=500
 )
 
 st.plotly_chart(
     fig_profile,
     use_container_width=True
+)
+
+st.caption(
+    "Takeaway: The maturity profile highlights the agency's strongest dimension and the priority area requiring improvement."
 )
 
 # ==========================================================
@@ -741,9 +796,18 @@ priority_df = priority_df[
     ]
 ]
 
+priority_display_df = format_priority_dataframe(
+    priority_df
+)
+
 st.dataframe(
-    priority_df,
-    use_container_width=True
+    priority_display_df,
+    use_container_width=True,
+    hide_index=True,
+    height=min(
+        300,
+        36 * len(priority_display_df) + 40
+    )
 )
 
 # ==========================================================
@@ -824,7 +888,12 @@ with st.expander(
 
     st.dataframe(
         roadmap_df,
-        use_container_width=True
+        use_container_width=True,
+        hide_index=True,
+        height=min(
+            420,
+            35 * len(roadmap_df) + 40
+        )
     )
 
     st.markdown(
@@ -833,7 +902,12 @@ with st.expander(
 
     st.dataframe(
         priority_df,
-        use_container_width=True
+        use_container_width=True,
+        hide_index=True,
+        height=min(
+            300,
+            36 * len(priority_df) + 40
+        )
     )
 
 # ==========================================================
@@ -858,3 +932,24 @@ If implemented progressively, the roadmap can improve evidence-based planning,
 asset management decision-making, forecasting capability and long-term
 infrastructure performance.
 """)
+
+# ==========================================================
+# NEXT PAGE HINT
+# ==========================================================
+
+st.divider()
+
+try:
+
+    st.page_link(
+        "pages/13_Key_Findings_and_Recommendations.py",
+        label="Next suggested page: Key Findings and Recommendations",
+        icon="➡️"
+    )
+
+except Exception:
+
+    st.caption(
+        "Next suggested page: Key Findings and Recommendations →"
+    )
+
