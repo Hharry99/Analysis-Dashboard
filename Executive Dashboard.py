@@ -30,7 +30,7 @@ from utils.data_cleaning import (
 from utils.theme_coder import build_theme_dataset
 from utils.theme_dictionary import THEME_KEYWORDS
 
-from utils.dashboard_style import apply_dashboard_style, render_status_line
+from utils.dashboard_style import apply_dashboard_style
 
 # ==========================================================
 # PAGE CONFIG
@@ -417,6 +417,33 @@ def round_display_columns(df, columns, decimals=1):
 
     return df
 
+def shorten_strategic_theme(label):
+
+    label_map = {
+        "Data Systems & Databases":
+            "Data Systems",
+
+        "Routine Data Collection & Monitoring":
+            "Data Collection",
+
+        "Forecasting, AI & Analytics":
+            "Forecasting & AI",
+
+        "Capacity Building & Training":
+            "Capacity Building",
+
+        "Institutional Coordination & Policy":
+            "Coordination & Policy",
+
+        "Funding & Resource Allocation":
+            "Funding"
+    }
+
+    return label_map.get(
+        label,
+        label
+    )
+
 # ==========================================================
 # PREPARE ANALYSIS DATA
 # ==========================================================
@@ -799,14 +826,8 @@ Based on {responses} practitioner responses from {agencies} road-sector agencies
     unsafe_allow_html=True
 )
 
-render_status_line()
-
 st.caption(
-    "📌 Page purpose: Provides a high-level executive overview of the full study, including respondent profile, maturity scores, benchmarking, qualitative insights and strategic priorities."
-)
-
-st.caption(
-    "🏷 Page context: Executive overview · Full research summary · Decision-support landing page"
+    "Page purpose: Provides a high-level executive overview of the full study, including respondent profile, maturity scores, benchmarking, qualitative insights and strategic priorities."
 )
 
 st.divider()
@@ -1179,11 +1200,7 @@ if not benchmark_display_df.empty:
     )
 
     st.caption(
-        "Note: Benchmark records will be refreshed after survey closure to ensure one final validated record per agency."
-    )
-
-    st.caption(
-        "Takeaway: Benchmarking gives an interim view of agency positioning and will be refreshed after the final validated dataset is updated."
+        "Takeaway: Benchmarking gives a concise interim view of agency positioning and maturity scores."
     )
 
 # ==========================================================
@@ -1330,6 +1347,10 @@ detailed operational theme breakdown from Q27 and Q28.
 
 if not strategic_theme_summary.empty:
 
+    strategic_theme_summary["Display Theme"] = strategic_theme_summary["Theme"].apply(
+        shorten_strategic_theme
+    )
+
     col1, col2 = st.columns(2)
 
     with col1:
@@ -1389,7 +1410,7 @@ if not strategic_theme_summary.empty:
 
             fig_theme_pct = px.pie(
                 strategic_theme_summary,
-                names="Theme",
+                names="Display Theme",
                 values="Percentage",
                 hole=0.60,
                 title="Strategic Theme Group Share",
@@ -1397,7 +1418,20 @@ if not strategic_theme_summary.empty:
             )
 
             fig_theme_pct.update_layout(
-                height=450
+                height=520,
+                margin=dict(
+                    l=10,
+                    r=10,
+                    t=70,
+                    b=120
+                ),
+                legend=dict(
+                    orientation="h",
+                    yanchor="top",
+                    y=-0.18,
+                    xanchor="center",
+                    x=0.50
+                )
             )
 
             st.plotly_chart(
@@ -1511,9 +1545,19 @@ pathways for pavement performance management in Kenya.
 
 st.divider()
 
-st.caption(
-    "Next suggested page: Respondent Profile Analysis →"
-)
+try:
+
+    st.page_link(
+        "pages/01_Respondent_Profile.py",
+        label="Next suggested page: Respondent Profile Analysis",
+        icon="➡️"
+    )
+
+except Exception:
+
+    st.caption(
+        "Next suggested page: Respondent Profile Analysis →"
+    )
 
 # ==========================================================
 # DEVELOPER DIAGNOSTICS
