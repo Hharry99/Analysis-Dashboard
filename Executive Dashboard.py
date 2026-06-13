@@ -553,22 +553,6 @@ st.sidebar.header(
     "⚙ Dashboard Filters"
 )
 
-st.sidebar.markdown(
-    """
-    <div style="font-size:13px; line-height:1.45; margin-bottom:12px;">
-    <b>Dashboard Navigation Guide</b><br>
-    1. Executive Overview<br>
-    2. Respondent Profile<br>
-    3. Maturity Analysis<br>
-    4. Question Analytics<br>
-    5. Open-Ended Insights<br>
-    6. Benchmarking, Roadmap and Recommendations
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-
 selected_agencies = st.sidebar.multiselect(
     "Agency",
     sorted(
