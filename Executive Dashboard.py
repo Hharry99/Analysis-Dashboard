@@ -468,6 +468,25 @@ def shorten_strategic_theme(label):
     )
 
 
+def shorten_work_level(label):
+
+    label_map = {
+        "Regional office (regional work planning, implementation)":
+            "Regional office",
+
+        "Headquarters (national coordination)":
+            "Headquarters",
+
+        "Hybrid":
+            "Hybrid"
+    }
+
+    return label_map.get(
+        str(label),
+        str(label)
+    )
+
+
 def apply_readable_donut_layout(fig, height=560):
     """
     Makes donut/pie charts readable in normal dashboard view and PDF export.
@@ -1332,21 +1351,54 @@ with col2:
             "Responses"
         ]
 
+        level_counts["Display Work Level"] = level_counts[
+            "Work Level"
+        ].apply(
+            shorten_work_level
+        )
+
         fig_level = px.bar(
             level_counts,
             x="Responses",
-            y="Work Level",
+            y="Display Work Level",
             orientation="h",
-            color="Work Level",
+            color="Display Work Level",
+            text="Responses",
+            custom_data=[
+                "Work Level"
+            ],
             color_discrete_sequence=COLOR_SEQUENCE,
             title="Respondents by Work Level"
         )
 
         fig_level.update_layout(
-            height=450,
+            height=520,
             showlegend=False,
             xaxis_title="Responses",
-            yaxis_title="Work Level"
+            yaxis_title="Work Level",
+            margin=dict(
+                l=30,
+                r=80,
+                t=70,
+                b=90
+            ),
+            xaxis=dict(
+                automargin=True,
+                title_standoff=20
+            ),
+            yaxis=dict(
+                automargin=True
+            )
+        )
+
+        fig_level.update_traces(
+            texttemplate="%{text}",
+            textposition="outside",
+            cliponaxis=False,
+            hovertemplate=(
+                "Work Level: %{customdata[0]}<br>"
+                "Responses: %{x}<extra></extra>"
+            )
         )
 
         st.plotly_chart(
