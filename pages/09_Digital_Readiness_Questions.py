@@ -4,6 +4,7 @@
 # ==========================================================
 
 import streamlit as st
+import textwrap
 import pandas as pd
 import plotly.express as px
 
@@ -51,6 +52,43 @@ st.markdown(
     border-radius:10px;
     margin-top:15px;
     margin-bottom:20px;
+}
+
+
+.compact-table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+    line-height:1.35;
+    margin-top:8px;
+    margin-bottom:18px;
+}
+
+.compact-table th{
+    text-align:left;
+    padding:8px 10px;
+    border-bottom:1px solid rgba(128,128,128,0.35);
+    background:rgba(15,23,42,0.04);
+    font-weight:700;
+}
+
+.compact-table td{
+    padding:8px 10px;
+    border-bottom:1px solid rgba(128,128,128,0.22);
+    vertical-align:top;
+    white-space:normal;
+    word-break:normal;
+    overflow-wrap:break-word;
+}
+
+.compact-table .num{
+    text-align:right;
+    white-space:nowrap;
+}
+
+.compact-table .center{
+    text-align:center;
+    white-space:nowrap;
 }
 
 .question-box{
@@ -169,11 +207,19 @@ def shorten_label(value, max_length=80):
 
     text = str(value)
 
-    if len(text) > max_length:
+    wrapped = textwrap.wrap(
+        text,
+        width=max_length,
+        break_long_words=False,
+        break_on_hyphens=False
+    )
 
-        return text[:max_length - 3] + "..."
+    if not wrapped:
+        return text
 
-    return text
+    return "<br>".join(
+        wrapped
+    )
 
 
 def apply_readable_horizontal_bar_layout(fig, row_count, height_min=520):
@@ -181,8 +227,8 @@ def apply_readable_horizontal_bar_layout(fig, row_count, height_min=520):
     chart_height = max(
         height_min,
         min(
-            780,
-            180 + row_count * 42
+            900,
+            210 + row_count * 50
         )
     )
 
@@ -190,17 +236,18 @@ def apply_readable_horizontal_bar_layout(fig, row_count, height_min=520):
         height=chart_height,
         showlegend=False,
         margin=dict(
-            l=40,
-            r=105,
+            l=60,
+            r=115,
             t=80,
-            b=90
+            b=95
         ),
         xaxis=dict(
             automargin=True,
             title_standoff=20
         ),
         yaxis=dict(
-            automargin=True
+            automargin=True,
+            title_standoff=20
         )
     )
 
@@ -217,14 +264,14 @@ def apply_readable_heatmap_layout(fig, height=600):
     fig.update_layout(
         height=height,
         margin=dict(
-            l=70,
+            l=80,
             r=40,
             t=80,
-            b=125
+            b=80
         ),
         xaxis=dict(
             automargin=True,
-            tickangle=-20,
+            tickangle=0,
             title_standoff=25
         ),
         yaxis=dict(
@@ -241,15 +288,6 @@ def make_display_table(df_in, response_col="Response", max_length=78):
 
     df_out = df_in.copy()
 
-    if response_col in df_out.columns:
-
-        df_out[response_col] = df_out[response_col].apply(
-            lambda x: shorten_label(
-                x,
-                max_length=max_length
-            )
-        )
-
     if "Percentage" in df_out.columns:
 
         df_out["Percentage"] = df_out["Percentage"].map(
@@ -257,6 +295,80 @@ def make_display_table(df_in, response_col="Response", max_length=78):
         )
 
     return df_out
+
+
+def render_compact_table(df_in, numeric_columns=None, max_rows=None):
+
+    numeric_columns = numeric_columns or []
+
+    df_out = df_in.copy()
+
+    if max_rows is not None:
+
+        df_out = df_out.head(max_rows)
+
+    html_rows = []
+
+    headers = "".join(
+        f"<th>{str(col)}</th>"
+        for col in df_out.columns
+    )
+
+    for _, row in df_out.iterrows():
+
+        cells = []
+
+        for col in df_out.columns:
+
+            value = row[col]
+
+            css_class = (
+                "num"
+                if col in numeric_columns
+                else ""
+            )
+
+            cells.append(
+                f"<td class='{css_class}'>{str(value)}</td>"
+            )
+
+        html_rows.append(
+            "<tr>" + "".join(cells) + "</tr>"
+        )
+
+    table_html = (
+        "<table class='compact-table'>"
+        "<thead><tr>"
+        + headers
+        + "</tr></thead>"
+        "<tbody>"
+        + "".join(html_rows)
+        + "</tbody></table>"
+    )
+
+    st.markdown(
+        table_html,
+        unsafe_allow_html=True
+    )
+
+
+def build_response_key(responses):
+
+    key_rows = []
+
+    for idx, response in enumerate(
+        responses,
+        start=1
+    ):
+
+        key_rows.append({
+            "Code": f"R{idx}",
+            "Full Response Category": response
+        })
+
+    return pd.DataFrame(
+        key_rows
+    )
 
 # ==========================================================
 # DIGITAL READINESS QUESTION MAP
@@ -537,7 +649,7 @@ chart_df = (
 chart_df["Display Response"] = chart_df["Response"].apply(
     lambda x: shorten_label(
         x,
-        max_length=58
+        max_length=46
     )
 )
 
@@ -654,16 +766,19 @@ try:
         ]
     ]
 
-    display_columns = {
-        col: shorten_label(
-            col,
-            max_length=34
+    response_key_df = build_response_key(
+        list(cross_df.columns)
+    )
+
+    response_code_map = dict(
+        zip(
+            response_key_df["Full Response Category"],
+            response_key_df["Code"]
         )
-        for col in cross_df.columns
-    }
+    )
 
     cross_df = cross_df.rename(
-        columns=display_columns
+        columns=response_code_map
     )
 
     fig2 = px.imshow(
@@ -671,7 +786,7 @@ try:
         aspect="auto",
         title="Response Heatmap by Agency",
         labels=dict(
-            x="Response",
+            x="Response category code",
             y="Agency",
             color="Count"
         ),
@@ -679,9 +794,13 @@ try:
         text_auto=True
     )
 
+    fig2.update_xaxes(
+        tickangle=0
+    )
+
     fig2 = apply_readable_heatmap_layout(
         fig2,
-        height=600
+        height=500
     )
 
     st.plotly_chart(
@@ -690,7 +809,17 @@ try:
     )
 
     st.caption(
-        "Takeaway: The heatmap compares the strongest digital readiness response categories across agencies using shortened labels for normal-view readability."
+        "Takeaway: The heatmap uses response category codes to avoid congested labels. The full response names are shown in the key below."
+    )
+
+    st.markdown(
+        "#### Response Category Key"
+    )
+
+    render_compact_table(
+        response_key_df,
+        numeric_columns=[],
+        max_rows=None
     )
 
 except Exception as e:
@@ -722,14 +851,23 @@ summary_display_df = make_display_table(
     max_length=78
 )
 
-st.dataframe(
-    summary_display_df,
-    use_container_width=True,
-    hide_index=True,
-    height=min(
-        340,
-        38 * len(summary_display_df) + 40
+summary_display_df.insert(
+    0,
+    "No.",
+    range(
+        1,
+        len(summary_display_df) + 1
     )
+)
+
+render_compact_table(
+    summary_display_df,
+    numeric_columns=[
+        "No.",
+        "Count",
+        "Percentage"
+    ],
+    max_rows=None
 )
 
 # ==========================================================
@@ -779,14 +917,22 @@ with st.expander(
             max_length=85
         )
 
-        st.dataframe(
-            agency_response_display_df,
-            use_container_width=True,
-            hide_index=True,
-            height=min(
-                420,
-                35 * len(agency_response_display_df) + 40
+        agency_response_display_df.insert(
+            0,
+            "No.",
+            range(
+                1,
+                len(agency_response_display_df) + 1
             )
+        )
+
+        render_compact_table(
+            agency_response_display_df,
+            numeric_columns=[
+                "No.",
+                "Count"
+            ],
+            max_rows=None
         )
 
     except Exception:
