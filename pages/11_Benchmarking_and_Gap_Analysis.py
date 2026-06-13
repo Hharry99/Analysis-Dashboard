@@ -205,6 +205,164 @@ def shorten_dimension(label):
         label
     )
 
+
+def apply_readable_horizontal_bar_layout(fig, height=540, right_margin=95):
+
+    fig.update_layout(
+        height=height,
+        showlegend=False,
+        margin=dict(
+            l=70,
+            r=right_margin,
+            t=80,
+            b=90
+        ),
+        xaxis=dict(
+            automargin=True,
+            title_standoff=20
+        ),
+        yaxis=dict(
+            automargin=True,
+            title_standoff=20
+        )
+    )
+
+    fig.update_traces(
+        textposition="outside",
+        cliponaxis=False
+    )
+
+    return fig
+
+
+def apply_readable_grouped_bar_layout(fig, height=760):
+
+    fig.update_layout(
+        height=height,
+        margin=dict(
+            l=80,
+            r=110,
+            t=80,
+            b=155
+        ),
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.18,
+            xanchor="center",
+            x=0.50,
+            font=dict(
+                size=10
+            )
+        ),
+        xaxis=dict(
+            automargin=True,
+            title_standoff=20
+        ),
+        yaxis=dict(
+            automargin=True,
+            title_standoff=20
+        )
+    )
+
+    fig.update_traces(
+        textposition="outside",
+        cliponaxis=False
+    )
+
+    return fig
+
+
+def apply_readable_radar_layout(fig, height=720):
+
+    fig.update_layout(
+        height=height,
+        margin=dict(
+            l=60,
+            r=60,
+            t=80,
+            b=120
+        ),
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.10,
+            xanchor="center",
+            x=0.50
+        ),
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[
+                    0,
+                    100
+                ],
+                tickfont=dict(
+                    size=11
+                )
+            ),
+            angularaxis=dict(
+                tickfont=dict(
+                    size=12
+                )
+            )
+        )
+    )
+
+    return fig
+
+
+def apply_readable_heatmap_layout(fig, height=560, xangle=-20):
+
+    fig.update_layout(
+        height=height,
+        margin=dict(
+            l=75,
+            r=40,
+            t=80,
+            b=125
+        ),
+        xaxis=dict(
+            automargin=True,
+            tickangle=xangle,
+            title_standoff=25
+        ),
+        yaxis=dict(
+            automargin=True,
+            title_standoff=20
+        ),
+        coloraxis_showscale=False
+    )
+
+    return fig
+
+
+def format_score_dataframe(df_in, score_cols=None):
+
+    df_out = df_in.copy()
+
+    if score_cols is None:
+
+        score_cols = [
+            col for col in df_out.columns
+            if col not in [
+                "Agency",
+                "Benchmark Band",
+                "Priority Area"
+            ]
+        ]
+
+    for col in score_cols:
+
+        if col in df_out.columns:
+
+            df_out[col] = pd.to_numeric(
+                df_out[col],
+                errors="ignore"
+            )
+
+    return df_out
+
 # ==========================================================
 # CLEAN AND STANDARDIZE BENCHMARK DATA
 # ==========================================================
@@ -422,9 +580,18 @@ ranking_df = ranking_df.rename(
     }
 )
 
+ranking_display_df = format_score_dataframe(
+    ranking_df
+)
+
 st.dataframe(
-    ranking_df,
-    use_container_width=True
+    ranking_display_df,
+    use_container_width=True,
+    hide_index=True,
+    height=min(
+        320,
+        36 * len(ranking_display_df) + 40
+    )
 )
 
 # ==========================================================
@@ -457,20 +624,33 @@ fig_rank.update_layout(
         range=[
             0,
             100
-        ]
+        ],
+        automargin=True,
+        title_standoff=20
     ),
-    height=520,
-    showlegend=False
+    yaxis=dict(
+        automargin=True,
+        title_standoff=20
+    )
 )
 
 fig_rank.update_traces(
-    texttemplate="%{text:.1f}",
-    textposition="outside"
+    texttemplate="%{text:.1f}"
+)
+
+fig_rank = apply_readable_horizontal_bar_layout(
+    fig_rank,
+    height=560,
+    right_margin=105
 )
 
 st.plotly_chart(
     fig_rank,
     use_container_width=True
+)
+
+st.caption(
+    "Takeaway: The ranking provides a quick comparison of overall benchmark scores across the participating agencies."
 )
 
 # ==========================================================
@@ -514,22 +694,21 @@ for _, row in benchmark_df.iterrows():
     )
 
 fig_radar.update_layout(
-    polar=dict(
-        radialaxis=dict(
-            visible=True,
-            range=[
-                0,
-                100
-            ]
-        )
-    ),
-    showlegend=True,
-    height=700
+    showlegend=True
+)
+
+fig_radar = apply_readable_radar_layout(
+    fig_radar,
+    height=720
 )
 
 st.plotly_chart(
     fig_radar,
     use_container_width=True
+)
+
+st.caption(
+    "Takeaway: The radar chart compares the four maturity dimensions across agencies, while the tables and bar charts provide clearer exact values."
 )
 
 # ==========================================================
@@ -601,7 +780,6 @@ The heatmap is retained below as a compact scorecard.
     )
 
     fig_strategic_bar.update_layout(
-        height=720,
         xaxis_title="Strategic Capability Score",
         yaxis_title="Agency",
         xaxis=dict(
@@ -609,21 +787,35 @@ The heatmap is retained below as a compact scorecard.
                 0,
                 max(
                     10,
-                    strategic_long_df["Score"].max() * 1.20
+                    strategic_long_df["Score"].max() * 1.25
                 )
-            ]
+            ],
+            automargin=True,
+            title_standoff=20
+        ),
+        yaxis=dict(
+            automargin=True,
+            title_standoff=20
         ),
         legend_title_text="Strategic Capability"
     )
 
     fig_strategic_bar.update_traces(
-        texttemplate="%{text:.1f}",
-        textposition="outside"
+        texttemplate="%{text:.1f}"
+    )
+
+    fig_strategic_bar = apply_readable_grouped_bar_layout(
+        fig_strategic_bar,
+        height=780
     )
 
     st.plotly_chart(
         fig_strategic_bar,
         use_container_width=True
+    )
+
+    st.caption(
+        "Takeaway: The grouped bar chart highlights agency-level capability differences across the six strategic dimensions."
     )
 
     strategic_heatmap_df = strategic_df.copy()
@@ -663,18 +855,23 @@ The heatmap is retained below as a compact scorecard.
     )
 
     fig_heat.update_layout(
-        height=620,
         xaxis_title="Strategic Capability Dimension",
         yaxis_title="Agency"
     )
 
-    fig_heat.update_xaxes(
-        tickangle=25
+    fig_heat = apply_readable_heatmap_layout(
+        fig_heat,
+        height=610,
+        xangle=-20
     )
 
     st.plotly_chart(
         fig_heat,
         use_container_width=True
+    )
+
+    st.caption(
+        "Takeaway: The scorecard gives a compact view of strategic capability strengths and weaknesses by agency."
     )
 
 # ==========================================================
@@ -724,14 +921,23 @@ fig_gap = px.imshow(
 )
 
 fig_gap.update_layout(
-    height=600,
     xaxis_title="Maturity Dimension",
     yaxis_title="Agency"
+)
+
+fig_gap = apply_readable_heatmap_layout(
+    fig_gap,
+    height=560,
+    xangle=0
 )
 
 st.plotly_chart(
     fig_gap,
     use_container_width=True
+)
+
+st.caption(
+    "Takeaway: Digital Readiness shows the largest average benchmark gap across agencies."
 )
 
 # ==========================================================
@@ -765,9 +971,21 @@ priority_df = pd.DataFrame(
     priority_rows
 )
 
-st.dataframe(
+priority_display_df = format_score_dataframe(
     priority_df,
-    use_container_width=True
+    score_cols=[
+        "Score"
+    ]
+)
+
+st.dataframe(
+    priority_display_df,
+    use_container_width=True,
+    hide_index=True,
+    height=min(
+        300,
+        36 * len(priority_display_df) + 40
+    )
 )
 
 # ==========================================================
@@ -785,7 +1003,8 @@ with st.expander(
 
     st.dataframe(
         ranking_df,
-        use_container_width=True
+        use_container_width=True,
+        hide_index=True
     )
 
     st.markdown(
@@ -856,3 +1075,24 @@ across agencies and highlight areas requiring targeted intervention.
 Improvement efforts should focus on the lowest-scoring dimensions within each
 agency to accelerate overall asset management maturity.
 """)
+
+# ==========================================================
+# NEXT PAGE HINT
+# ==========================================================
+
+st.divider()
+
+try:
+
+    st.page_link(
+        "pages/12_Strategic_Roadmap.py",
+        label="Next suggested page: Strategic Roadmap",
+        icon="➡️"
+    )
+
+except Exception:
+
+    st.caption(
+        "Next suggested page: Strategic Roadmap →"
+    )
+
