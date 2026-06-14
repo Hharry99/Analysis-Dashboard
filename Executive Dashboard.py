@@ -19,9 +19,11 @@
 
 import streamlit as st
 import textwrap
+from pathlib import Path
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from PIL import Image
 
 from utils.data_cleaning import (
     clean_master_dataset,
@@ -38,9 +40,12 @@ from utils.dashboard_navigation import apply_sidebar_navigation
 # PAGE CONFIG
 # ==========================================================
 
+APP_ICON_PATH = Path(__file__).with_name("dashboard_icon.png")
+APP_ICON = Image.open(APP_ICON_PATH) if APP_ICON_PATH.exists() else "▦"
+
 st.set_page_config(
     page_title="Pavement Performance Management Dashboard",
-    page_icon="▦",
+    page_icon=APP_ICON,
     layout="wide"
 )
 
