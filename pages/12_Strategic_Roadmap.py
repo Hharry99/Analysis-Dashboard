@@ -10,6 +10,7 @@ import pandas as pd
 import plotly.express as px
 
 from utils.dashboard_style import apply_dashboard_style
+from utils.dashboard_navigation import apply_sidebar_navigation
 
 # ==========================================================
 # PAGE CONFIG
@@ -17,7 +18,7 @@ from utils.dashboard_style import apply_dashboard_style
 
 st.set_page_config(
     page_title="Strategic Roadmap",
-    page_icon="📊",
+    page_icon="⌂",
     layout="wide"
 )
 
@@ -121,11 +122,87 @@ div[data-testid="metric-container"]{
     unsafe_allow_html=True
 )
 
+
+def apply_sidebar_visibility_override():
+
+    st.markdown(
+        """
+<style>
+
+/* Strategic Roadmap fallback override for grouped navigation visibility */
+section[data-testid="stSidebar"] div[data-testid="stExpander"] details summary,
+section[data-testid="stSidebar"] div[data-testid="stExpander"] summary,
+section[data-testid="stSidebar"] details summary{
+    background:#F3F4F6 !important;
+    color:#111827 !important;
+    min-height:44px !important;
+    padding:10px 13px !important;
+    font-size:16px !important;
+    font-weight:900 !important;
+    line-height:1.25 !important;
+}
+
+section[data-testid="stSidebar"] div[data-testid="stExpander"] details summary *,
+section[data-testid="stSidebar"] div[data-testid="stExpander"] summary *,
+section[data-testid="stSidebar"] details summary *{
+    color:#111827 !important;
+    fill:#111827 !important;
+    stroke:#111827 !important;
+    font-size:16px !important;
+    font-weight:900 !important;
+}
+
+section[data-testid="stSidebar"] [data-testid="stPageLink-NavLink"],
+section[data-testid="stSidebar"] [data-testid="stPageLink-NavLink"] *,
+section[data-testid="stSidebar"] a,
+section[data-testid="stSidebar"] a *{
+    color:#F9FAFB !important;
+    font-size:15.8px !important;
+    font-weight:800 !important;
+    line-height:1.25 !important;
+}
+
+section[data-testid="stSidebar"] [data-testid="stPageLink-NavLink"]{
+    padding:8px 10px !important;
+    border-radius:9px !important;
+    margin-bottom:3px !important;
+}
+
+section[data-testid="stSidebar"] [data-testid="stPageLink-NavLink"]:hover{
+    background:rgba(255,255,255,0.12) !important;
+}
+
+section[data-testid="stSidebar"] [data-baseweb="select"] > div{
+    background:#FFFFFF !important;
+    color:#111827 !important;
+}
+
+section[data-testid="stSidebar"] [data-baseweb="select"] input,
+section[data-testid="stSidebar"] [data-baseweb="select"] div,
+section[data-testid="stSidebar"] [data-baseweb="select"] span{
+    color:#111827 !important;
+    font-weight:600 !important;
+}
+
+section[data-testid="stSidebar"] [data-baseweb="select"] input::placeholder{
+    color:#374151 !important;
+    opacity:1 !important;
+}
+
+</style>
+""",
+        unsafe_allow_html=True
+    )
+
 # ==========================================================
 # DASHBOARD VISUAL POLISH ADDITIONS
 # ==========================================================
 
 apply_dashboard_style()
+apply_sidebar_navigation(
+    "Strategic Roadmap"
+)
+apply_sidebar_visibility_override()
 
 # ==========================================================
 # LOAD DATA
